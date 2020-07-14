@@ -43,6 +43,7 @@ fun translate_term vars (Const (name, _) $ lhs $ rhs) =
     @{const_name "divide"} => "Times[" ^ printL ^ ", Power[" ^ printR ^ ",-1]]" |
     @{const_name "times"} => printFun "Times" |
     @{const_name "power"} => printFun "Power" |
+    @{const_name "powr"} => printFun "Power" |
     _ => raise SyntaxError name
   end |
 (* Single argument functions *)
@@ -61,9 +62,13 @@ translate_term vars (Const (name, _) $ arg) =
     @{const_name "exp"} => printFun "Exp" |
     @{const_name "sin"} => printFun "Sin" |
     @{const_name "cos"} => printFun "Cos" |
+    @{const_name "tan"} => printFun "Tan" |
     @{const_name "sinh"} => printFun "Sinh" |
     @{const_name "cosh"} => printFun "Cosh" |
     @{const_name "sqrt"} => "Power[" ^ printV ^ ", Rational[1,2]]" |
+    @{const_name "arcsin"} => printFun "ArcSin" |
+    @{const_name "arccos"} => printFun "ArcCos" |
+    @{const_name "arctan"} => printFun "ArcTan" |
     _ => raise SyntaxError name)
   end |
 (* Constants *)
