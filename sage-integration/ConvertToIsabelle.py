@@ -1,9 +1,6 @@
 import operator
 import re
 import sys
-from collections import namedtuple
-from contextlib import nullcontext
-from functools import partial
 from random import randint
 import itertools
 import warnings
