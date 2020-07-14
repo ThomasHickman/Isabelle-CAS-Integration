@@ -1,3 +1,5 @@
 *.thy~
 *.thy#
+*.ML~
+*.ML#
 config.sml
