@@ -14,20 +14,26 @@ ML_file "sage-integration/ConvertToSage.ML"
 
 
 ML ‹
-val DEBUGMODE = true;
-fun my_tracing x = if DEBUGMODE then writeln x else ();
+local
 
 fun cartesian_power 1 = "ℝ" |
     cartesian_power n = cartesian_power (n-1) ^ " × ℝ"
 
+val ODE_solver_val = Attrib.setup_config_string @{binding "preprocess_ODE_solver"} (K "fricas");
+val preprocess_SODEs_val = Attrib.setup_config_bool @{binding "preprocess_SODEs"} (K true);
+
 (*NOTE: I can't get this function to work when it's in in ConvertToSage.ML, so I'm putting it here*)
+(*
+get_ode_prop: Given the string of an ODE, return a proposition of the solution, using Sage to solve
+the SODE
+*)
 fun get_ode_prop ctxt ode solver_name specified_domain specified_codomain = 
   let
     val ode_str = Syntax.pretty_term ctxt ode |> Pretty.string_of |> YXML.content_of;
-    val (solution, max_domain) = desolve ode solver_name
+    val (solution, max_domain) = Convert_To_Sage.desolve ode solver_name
         (Config.get ctxt ODE_solver_val) (Config.get ctxt preprocess_SODEs_val);
     val domain = if specified_domain = "" then max_domain else specified_domain;
-    val codomain = if specified_codomain = "" then cartesian_power(getNumOutEqs ode) else specified_codomain;
+    val codomain = if specified_codomain = "" then cartesian_power(Convert_To_Sage.getNumOutEqs ode) else specified_codomain;
     val final = "((" ^ solution ^ ") solves_ode (" ^ ode_str ^ ")) (" ^ domain ^ ") (" ^ codomain ^ ")"
   in final
 end;
@@ -55,7 +61,7 @@ fun prop_to_thm ctxt prop_str d_vars =
     in final_thm
 end;
 
-prop_to_thm @{context} "((λ t.((C0 :: real) * exp((t :: real)))) solves_ode (λt x. x)) (UNIV) (ℝ) " [];
+val _ = prop_to_thm @{context} "((λ t.((C0 :: real) * exp((t :: real)))) solves_ode (λt x. x)) (UNIV) (ℝ) " [];
 
 fun generate_lemma lemma_txt binding attribs lthy = 
   let
@@ -92,16 +98,19 @@ end;
 
 (*Test ode_solve_thm*)
 val stm = "((λ t.(t^2 * 1/2 + x(0), y(0))) solves_ode (λ (t::real) (x, y). (t, 0))) {0..l} UNIV";
-val prop = prop_to_thm @{context} stm;
+val _ = prop_to_thm @{context} stm;
 
-Outer_Syntax.command \<^command_keyword>‹ode_solve› "Solves the input ode and prints a lemma with the solution"
+
+val _ = Outer_Syntax.command \<^command_keyword>‹ode_solve› "Solves the input ode and prints a lemma with the solution"
     (Parse.term >> (fn sode_text => Toplevel.keep (fn st => 
       (do_ode_solve (Toplevel.context_of st) sode_text "" ""))));
 
-Outer_Syntax.local_theory \<^command_keyword>‹ode_solve_thm› "Solves the input ode and proves the solution as a theorem"
+val _ = Outer_Syntax.local_theory \<^command_keyword>‹ode_solve_thm› "Solves the input ode and proves the solution as a theorem"
     (((Parse_Spec.opt_thm_name ":") -- Parse.term -- (Scan.optional Parse.term "") -- (Scan.optional Parse.term "")) >> 
     (fn ((((binding, attribs), sode_text), domain), codomain) => 
       (do_ode_solve_thm sode_text binding attribs (domain |> YXML.content_of) (codomain |> YXML.content_of))));
+
+in end;
 ›
 
 end
