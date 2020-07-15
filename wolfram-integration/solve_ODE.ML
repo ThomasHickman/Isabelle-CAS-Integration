@@ -23,48 +23,61 @@ local
 in 
   fun get_mathematica_solution ode =
     let
-      val variables = collect_vars ode
-      val fresh_vars = gen_vars (List.length variables)
-    in mathematica_output (translate_ode ode fresh_vars)
+      val bound = collect_bound ode
+      val fresh_bound = gen_fresh_bound (List.length bound)
+      val free = collect_free ode
+      val fresh_free = gen_fresh_free fresh_bound free
+      val free_table = make_translation free fresh_free
+    in mathematica_output (translate_ode ode fresh_bound free_table)
     end
 
   fun solve_ode ode =
     let
-      val variables = collect_vars ode
-      val fresh_vars = gen_vars (List.length variables)
-      val mat_sol = mathematica_output (translate_ode ode fresh_vars)
-    in interpret_odes variables fresh_vars (parse mat_sol)
+      val bound = collect_bound ode
+      val fresh_bound = gen_fresh_bound (List.length bound)
+      val free = collect_free ode
+      val fresh_free = gen_fresh_free fresh_bound free
+      val free_table = make_translation free fresh_free
+      val mat_sol = mathematica_output (translate_ode ode fresh_bound free_table)
+      val vars = bound @ free
+      val fresh_vars = fresh_bound @ fresh_free
+    in interpret_odes vars fresh_vars (parse mat_sol)
     end
 
   fun solution_lemma ode =
     let
-      val variables = collect_vars ode
-      val fresh_vars = gen_vars (List.length variables)
-      val ast = parse (mathematica_output (translate_ode ode fresh_vars))
+      val bound = collect_bound ode
+      val fresh_bound = gen_fresh_bound (List.length bound)
+      val free = collect_free ode
+      val fresh_free = gen_fresh_free free fresh_bound
+      val free_table = make_translation free fresh_free
+      val ast = parse (mathematica_output (translate_ode ode fresh_bound free_table))
       val rules = hd ((map (map to_rule o to_list) o to_list) ast)
+      val fresh_vars = fresh_bound @ fresh_free
+      val vars = bound @ free
+      val translation = make_translation fresh_vars vars
       val domain_expr = get_domain (hd fresh_vars) rules
-      val domain = translate_expr variables domain_expr
-      val translation = make_translation fresh_vars variables
+      val domain = translate_expr bound translation domain_expr
       (* Parse it into a term to pretty print it later *)
       val solution_term = Proof_Context.read_term_pattern @{context}
-                          (interpret_ode variables translation rules)
+                          (interpret_ode bound translation rules)
     in (case domain_expr of
           (* If domain is all of the reals don't include it *)
           Id _ => [Pretty.str "lemma \"((",
                    Syntax.pretty_term @{context} solution_term,
                    Pretty.str ")(",
-                   Pretty.str (commas (tl variables)),
+                   Pretty.str (commas (tl bound)),
                    Pretty.str ") solves_ode (",
                    Syntax.pretty_term @{context} ode,
                    Pretty.str ")) T UNIV\" by (ode_cert)"]
          | _   => [Pretty.str "lemma \" ((",
                    Syntax.pretty_term @{context} solution_term,
                    Pretty.str ")(",
-                   Pretty.str (commas (tl variables)),
+                   Pretty.str (commas (tl bound)),
                    Pretty.str ") solves_ode (",
                    Syntax.pretty_term @{context} ode,
                    Pretty.str ")) {",
-                   Pretty.str (hd variables),
+                   Pretty.str (hd bound),
                    Pretty.str ". ",
                    Pretty.str domain,
                    Pretty.str "} UNIV\" by (ode_cert)"])
