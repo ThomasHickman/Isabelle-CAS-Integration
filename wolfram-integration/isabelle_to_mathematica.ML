@@ -89,20 +89,28 @@ fun collect_bound (Abs (a, _, c)) = a :: collect_bound c
   | collect_bound (Const (_, _) $ a) = collect_bound a 
   | collect_bound _ = []
 
-fun collect_free (Free (v, _)) = [v]
-  | collect_free (Const (_, _) $ a $ b) = collect_free a @ collect_free b 
-  | collect_free (Const (_, _) $ a) = collect_free a 
-  | collect_free (Abs (_, _, t)) = collect_free t 
-  | collect_free _ = []
+fun collect_free' (Free (v, _)) = [v]
+  | collect_free' (Const (_, _) $ a $ b) = collect_free' a @ collect_free' b
+  | collect_free' (Const (_, _) $ a) = collect_free' a 
+  | collect_free' (Abs (_, _, t)) = collect_free' t 
+  | collect_free' _ = []
+
+fun remove_duplicates [] = []
+  | remove_duplicates (x::xs) = if exists (fn y => x = y) xs
+                                   then remove_duplicates xs
+                                   else x :: remove_duplicates xs
+
+(* Need to remove duplicates in order to construct a Symtab *)
+fun collect_free trm = (remove_duplicates o collect_free') trm
 
 
 (* Obtain a list of the functions to be translated *)
 fun collect_rhs trm =
   case trm of
-       (Abs (_, _, rhs)) => collect_rhs rhs |
-       (Const (@{const_name "case_prod"}, _) $ arg) => collect_rhs arg |
-       (Const (@{const_name "Pair"}, _) $ l $ r) => l :: collect_rhs r |
-       a => [a]
+       (Abs (_, _, rhs)) => collect_rhs rhs
+     | (Const (@{const_name "case_prod"}, _) $ arg) => collect_rhs arg
+     | (Const (@{const_name "Pair"}, _) $ l $ r) => l :: collect_rhs r
+     | a => [a]
                            
 fun repeat _ 0 = [] |
     repeat x n = x :: (repeat x (n-1))

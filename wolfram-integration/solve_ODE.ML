@@ -9,8 +9,6 @@
 
 signature SOLVE_ODE =
 sig
-  val get_mathematica_solution: term -> string
-  val solve_ode: term -> string list
   val solution_lemma: term -> Pretty.T
 end
 
@@ -21,28 +19,8 @@ local
   open Isabelle_To_Mathematica;
   open Mathematica_To_Isabelle;
 in 
-  fun get_mathematica_solution ode =
-    let
-      val bound = collect_bound ode
-      val fresh_bound = gen_fresh_bound (List.length bound)
-      val free = collect_free ode
-      val fresh_free = gen_fresh_free fresh_bound free
-      val free_table = make_translation free fresh_free
-    in mathematica_output (translate_ode ode fresh_bound free_table)
-    end
-
-  fun solve_ode ode =
-    let
-      val bound = collect_bound ode
-      val fresh_bound = gen_fresh_bound (List.length bound)
-      val free = collect_free ode
-      val fresh_free = gen_fresh_free fresh_bound free
-      val free_table = make_translation free fresh_free
-      val mat_sol = mathematica_output (translate_ode ode fresh_bound free_table)
-      val vars = bound @ free
-      val fresh_vars = fresh_bound @ fresh_free
-    in interpret_odes vars fresh_vars (parse mat_sol)
-    end
+  fun make_translation from to =
+    Symtab.make (ListPair.zipEq (from, to))
 
   fun solution_lemma ode =
     let
