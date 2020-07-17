@@ -164,6 +164,22 @@ def decode_symbol(sym):
     else:
         return sym
 
+def sage_power_to_isabelle(base, exp):
+    if re.fullmatch("[0-9]+", exp) != None:
+        return base + "^" + exp
+
+    if exp.startswith("-"):
+        return "inverse (" + sage_power_to_isabelle(base, exp[1:]) + ")"
+
+    # if re.fullmatch("[0-9/()]+", exp) != None:
+    #     num = eval(exp)
+
+    #     if int(num - 0.5) == int(num - 0.5):
+    #         return "sqrt(" + base + ")" +\
+    #             ("" if num == 0.5 else "*" + base + ("" if num == 1.5 else "^" + str(int(num - 0.5))))
+
+    return base + " powr " + exp
+
 def exprToIsabelle(expr):
     if isinstance(expr, sage.rings.rational.Rational):
         return str(expr)
@@ -197,16 +213,7 @@ def exprToIsabelle(expr):
             opands_strs.append(opand_str)
 
         if op == operator.pow:
-            if re.fullmatch("[0-9]+", opands_strs[1]) != None:
-                return "^".join(opands_strs)
-            # if re.fullmatch("[0-9/()]+", opands_strs[1]) != None:
-            #     num = eval(opands_strs[1])
-
-            #     if int(num - 0.5) == int(num - 0.5):
-            #         return "sqrt(" + opands_strs[0] + ")" +\
-            #             ("" if num == 0.5 else "*" + opands_strs[0] + ("" if num == 1.5 else "^" + str(int(num - 0.5))))
-
-            return " powr ".join(opands_strs)
+            return sage_power_to_isabelle(opands_strs[0], opands_strs[1])
         if op in infix_mappings:
             return infix_mappings[op][0].join(opands_strs)
         elif op in fn_mappings:

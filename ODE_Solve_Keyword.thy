@@ -82,16 +82,16 @@ fun do_ode_solve ctxt sode_text specified_domain specified_codomain =
     "lemma \"" ^ main_prop ^ "\" by ode_cert" |> writeln end
 end;
 
-fun do_ode_solve_thm sode_text binding attribs specified_domain specified_codomain lthy =
+fun do_ode_solve_thm sode_text binding attribs specified_domain specified_codomain constraint lthy =
   let val ctxt = Local_Theory.target_of lthy
   val sode = Syntax.read_term ctxt sode_text
   val lemma_text = 
-    if (Config.get ctxt SODE_solver_val) = "wolfram" then
+    (if constraint = "" then "" else constraint ^ " ==> ") ^
+    (if (Config.get ctxt SODE_solver_val) = "wolfram" then
       let val full_text = Solve_ODE.solution_lemma sode |> Pretty.string_of |> YXML.content_of in
       String.substring (full_text, 7, (String.size full_text - 22)) end (*get rid of the first and last parts of the theorem*)
     else
-      (get_ode_prop ctxt sode (Config.get ctxt SODE_solver_val) specified_domain specified_codomain) ^ ""
-  val _ = lemma_text;
+      (get_ode_prop ctxt sode (Config.get ctxt SODE_solver_val) specified_domain specified_codomain) ^ "")
   in generate_lemma lemma_text binding attribs lthy
 end;
 
@@ -106,9 +106,9 @@ val _ = Outer_Syntax.command \<^command_keyword>‹ode_solve› "Solves the inpu
       (do_ode_solve (Toplevel.context_of st) sode_text "" ""))));
 
 val _ = Outer_Syntax.local_theory \<^command_keyword>‹ode_solve_thm› "Solves the input ode and proves the solution as a theorem"
-    (((Parse_Spec.opt_thm_name ":") -- Parse.term -- (Scan.optional Parse.term "") -- (Scan.optional Parse.term "")) >> 
-    (fn ((((binding, attribs), sode_text), domain), codomain) => 
-      (do_ode_solve_thm sode_text binding attribs (domain |> YXML.content_of) (codomain |> YXML.content_of))));
+    (((Parse_Spec.opt_thm_name ":") -- Parse.term -- (Scan.optional Parse.term "") -- (Scan.optional Parse.term "") -- (Scan.optional Parse.prop "")) >> 
+    (fn (((((binding, attribs), sode_text), domain), codomain), constraint) => 
+      (do_ode_solve_thm sode_text binding attribs (domain |> YXML.content_of) (codomain |> YXML.content_of) (constraint |> YXML.content_of))));
 
 in end;
 ›
