@@ -180,14 +180,16 @@ def sage_power_to_isabelle(base, exp):
 
     return base + " powr " + exp
 
+def sage_is_numeric(expr):
+    try:
+        if float(expr) == expr:
+            return True
+    except: pass
+    return False
+
 def exprToIsabelle(expr):
-    if isinstance(expr, sage.rings.rational.Rational):
+    if sage_is_numeric(expr):
         return str(expr)
-    elif expr.is_numeric():
-        if expr.is_real():
-            return str(expr)
-        else:
-            raise NotImplementedError("Conversion of complex number is not implemented")
     elif expr == pi:
         return "pi"
     elif expr == e:
@@ -201,7 +203,7 @@ def exprToIsabelle(expr):
         for opand in opands:
             opand_str = exprToIsabelle(opand)
             opand_operator = opand.operator()
-            if opand.is_numeric() and not opand.is_integer():
+            if sage_is_numeric(opand) and not opand.is_integer():
                 opand_operator = operator.truediv
 
             if  op in infix_mappings and \
