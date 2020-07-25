@@ -238,9 +238,8 @@ def find_real_domain(f, symbol):
         symbol = new_symbol
 
         return continuous_domain(f, symbol, S.Reals)
-    except Exception:
-        warnings.warn("Failed to find the domain of: " + str(f), RuntimeWarning)
-        raise
+    except Exception as e:
+        warnings.warn("Failed to find the domain of: " + str(f) + "\n" + str(e), RuntimeWarning)
         return S.Reals
 
 def test_find_real_domain():
@@ -362,10 +361,10 @@ def preprocess_and_solve(odes, i_var, d_vars):
 
 def extract_full_solution(de_sol, dvar, ivar):
     if de_sol == "failed":
-        raise RuntimeError("Failed to find the solution to the SODE")
+        raise RuntimeError("Failed to find the solution of the SODE")
 
     if de_sol.operator() == operator.eq or de_sol.has(dvar):
-        new_sols = [stubify(sol.rhs()) for sol in solve(de_sol, dvar) if not sol.has(I)]
+        new_sols = [stubify(sol.rhs()) for sol in solve(de_sol, dvar) if not (sol.has(I) or sol.rhs().has(dvar))]
         if new_sols == []:
             raise RuntimeError("Cannot solve the equation: '" + str(de_sol) + "' in terms of " + str(dvar))
 
@@ -432,4 +431,10 @@ else:
 
     print("\<lambda> " + str(iVar) + ".("  + ", ".join([
         exprToIsabelle(sol.rhs()) for sol in sols]) + ")")
-    print(sympy_range_to_isabelle(get_solution_domain(sols, iVar)))
+    solution_domain = get_solution_domain(sols, iVar)
+    try:
+        print(sympy_range_to_isabelle(solution_domain))
+    except Exception as e:
+        warnings.warn("Failed to convert: " + str(solution_domain) + " to Isabelle" + "\n" + str(e)
+            , RuntimeWarning)
+        print("UNIV")
