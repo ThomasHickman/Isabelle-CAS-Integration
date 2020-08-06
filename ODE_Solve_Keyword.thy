@@ -76,10 +76,10 @@ fun generate_lemma lemma_txt binding attribs lthy =
 fun do_ode_solve ctxt sode_text specified_domain specified_codomain =
   let val sode = Syntax.read_term ctxt sode_text in
   if (Config.get ctxt SODE_solver_val) = "wolfram" then
-    Solve_ODE.solution_lemma sode |> Pretty.writeln
+    Solve_ODE.solution_lemma sode |> Pretty.string_of |> Active.sendback_markup_command |> writeln
   else
     let val main_prop = get_ode_prop ctxt sode (Config.get ctxt SODE_solver_val) specified_domain specified_codomain in
-    "lemma \"" ^ main_prop ^ "\" by ode_cert" |> writeln end
+    "lemma \"" ^ main_prop ^ "\" by ode_cert" |> Active.sendback_markup_command |> writeln end
 end;
 
 fun do_ode_solve_thm sode_text binding attribs specified_domain specified_codomain constraint lthy =

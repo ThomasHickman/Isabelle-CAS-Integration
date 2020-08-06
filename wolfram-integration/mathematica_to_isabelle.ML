@@ -38,8 +38,9 @@ fun translate_expr vars table (e as (Fun ("Power", args))) =
       | [base, Int n] => let val trans_base = translate_expr vars table base
                          in (if n >= 0
                             then "(" ^ trans_base ^ " ^ " ^ translate_expr vars table (Int n) ^ ")" 
-                            else "(1 / (" ^ trans_base ^ ") ^ " ^
-                                translate_expr vars table (Int (~n)) ^ ")")
+                            else if n = ~1 then "(1 / " ^ trans_base ^ ")"
+                                  else "(1 / (" ^ trans_base ^ ") ^ " ^
+                                      translate_expr vars table (Int (~n)) ^ ")")
                          end
       | [base, exponent] => "(" ^ (translate_expr vars table base) ^ " powr "
                                ^ (translate_expr vars table exponent) ^ ")"
