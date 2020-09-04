@@ -12,7 +12,7 @@ ode_solve_thm "\<lambda> t x . x"
 (*test_2*)
 ode_solve_thm "(\<lambda> t (x,y) . (-y,x))"
 (*test_3*)
-ode_solve_thm "(\<lambda> t x . sqrt(t))"
+ode_solve_thm "(\<lambda> t x . sqrt(t))" "{0<..}"
 (*test_4*)
 ode_solve_thm "(\<lambda> t (v, h). (- 9.81, v))"
 (*test_5*)
@@ -36,7 +36,7 @@ ode_solve_thm "(\<lambda> t x. (x ^ 2))"
 
 (*Previous dissertation tests:*)
 
-ode_solve_thm "(λ (t::real) (x, y). (sqrt t, 3))" "{1..}"
+ode_solve_thm "(λ (t::real) (x, y). (sqrt t, 3))" "{0<..}"
 ode_solve_thm "(λ (t::real) (x, y). (t, x))"
 ode_solve_thm "(λ (t::real) (x, y). (t+2, x+3))"
 ode_solve_thm "(λ (t::real) (x, y). (-2-t, -x-3))"
