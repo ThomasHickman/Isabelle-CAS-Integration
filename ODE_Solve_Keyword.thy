@@ -76,7 +76,7 @@ fun generate_lemma lemma_txt binding attribs lthy =
 fun do_ode_solve ctxt sode_text specified_domain specified_codomain =
   let val sode = Syntax.read_term ctxt sode_text in
   if (Config.get ctxt SODE_solver_val) = "wolfram" then
-    Solve_ODE.solution_lemma sode |> Pretty.string_of |> Active.sendback_markup_command |> writeln
+    Solve_ODE.solution_lemma sode specified_domain specified_codomain |> Pretty.string_of |> Active.sendback_markup_command |> writeln
   else
     let val main_prop = get_ode_prop ctxt sode (Config.get ctxt SODE_solver_val) specified_domain specified_codomain in
     "lemma \"" ^ main_prop ^ "\" by ode_cert" |> Active.sendback_markup_command |> writeln end
@@ -88,7 +88,7 @@ fun do_ode_solve_thm sode_text binding attribs specified_domain specified_codoma
   val lemma_text = 
     (if constraint = "" then "" else constraint ^ " ==> ") ^
     (if (Config.get ctxt SODE_solver_val) = "wolfram" then
-      let val full_text = Solve_ODE.solution_lemma sode |> Pretty.string_of |> YXML.content_of in
+      let val full_text = Solve_ODE.solution_lemma sode specified_domain specified_codomain |> Pretty.string_of |> YXML.content_of in
       String.substring (full_text, 7, (String.size full_text - 22)) end (*get rid of the first and last parts of the theorem*)
     else
       (get_ode_prop ctxt sode (Config.get ctxt SODE_solver_val) specified_domain specified_codomain) ^ "")

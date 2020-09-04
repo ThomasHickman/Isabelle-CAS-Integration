@@ -9,7 +9,7 @@
 
 signature SOLVE_ODE =
 sig
-  val solution_lemma: term -> Pretty.T
+  val solution_lemma: term -> string -> string -> Pretty.T
 end
 
 structure Solve_ODE: SOLVE_ODE =
@@ -22,7 +22,7 @@ in
   fun make_translation from to =
     Symtab.make (ListPair.zipEq (from, to))
 
-  fun solution_lemma ode =
+  fun solution_lemma ode specified_domain specified_codomain =
     let
       val bound = collect_bound ode
       val fresh_bound = gen_fresh_bound (List.length bound)
@@ -35,7 +35,8 @@ in
       val vars = bound @ free
       val translation = make_translation fresh_vars vars
       val domain_expr = get_domain (hd fresh_vars) rules
-      val domain = translate_expr bound translation domain_expr
+      val domain = if specified_domain = "" then "{" ^ (hd bound) ^ ". " ^ translate_expr bound translation domain_expr ^ "}" else specified_domain
+      val codomain = if specified_codomain = "" then "UNIV" else specified_codomain
       (* Parse it into a term to pretty print it later *)
       val solution_term = Proof_Context.read_term_pattern @{context}
                           (interpret_ode bound translation rules)
@@ -54,11 +55,9 @@ in
                    Pretty.str (commas (tl bound)),
                    Pretty.str ") solves_ode (",
                    Syntax.pretty_term @{context} ode,
-                   Pretty.str ")) {",
-                   Pretty.str (hd bound),
-                   Pretty.str ". ",
+                   Pretty.str "))",
                    Pretty.str domain,
-                   Pretty.str "} UNIV\" by (ode_cert)"])
+                   Pretty.str (" " ^ codomain ^ "\" by (ode_cert)")])
                 |> Pretty.paragraph
     end 
 
