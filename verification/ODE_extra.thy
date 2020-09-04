@@ -16,7 +16,7 @@ declare root_powr_inverse[field_simps]
 declare powr_mult_base[field_simps]
 
 method ode_cert = (rule_tac solves_odeI, simp_all add: has_vderiv_on_def, safe intro!:
-    has_vector_derivative_Pair, (rule has_vector_derivative_eq_rhs, (rule derivative_intros; (simp)?)+,
+    has_vector_derivative_Pair, (rule has_vector_derivative_eq_rhs, (rule derivative_intros; (simp add: field_simps)?)+,
       (simp add: field_simps)+)+)
 
 type_synonym 'c ODE = "real \<Rightarrow> 'c \<Rightarrow> 'c"
