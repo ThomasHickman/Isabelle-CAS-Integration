@@ -4,7 +4,7 @@ theory ODE_Solve_Keyword
   keywords "ode_solve" :: diag and "ode_solve_thm" :: thy_decl
 begin
 
-ML_file config.sml
+ML_file "config.sml"
 ML_file "wolfram-integration/lex_mathematica.ML"
 ML_file "wolfram-integration/parse_mathematica.ML"
 ML_file "wolfram-integration/isabelle_to_mathematica.ML"
@@ -53,7 +53,7 @@ fun get_all_vars (Var ((name, _), _)) = [name]
 fun prop_to_thm ctxt prop_str d_vars = 
   let
     val prop = Syntax.read_prop ctxt prop_str
-    val ode_cert_tac = Method.NO_CONTEXT_TACTIC ctxt (
+    val ode_cert_tac = Context_Tactic.NO_CONTEXT_TACTIC ctxt (
       Method_Closure.apply_method ctxt @{method ode_cert} [] [] [] ctxt [])
     val raw_thm = Goal.prove ctxt [] [] prop (K ode_cert_tac)
     val (_, ctxt1) = Variable.add_fixes d_vars ctxt
