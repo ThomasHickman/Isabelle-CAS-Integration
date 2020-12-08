@@ -30,6 +30,8 @@ exception TranslationError of (string * expr)
 datatype rule = Rule of string * expr
 datatype ode_solution = Solution of rule list
 
+
+
 (* Handle powers separately *)
 fun translate_expr vars table (e as (Fun ("Power", args))) =
   (case args of
@@ -54,8 +56,9 @@ translate_expr vars table (e as (Fun (fname, args))) =
                    | "Cos" => "cos(" ^ (translate_expr vars table arg) ^ ")" 
                    | "Sinh" => "sinh(" ^ (translate_expr vars table arg) ^ ")" 
                    | "Cosh" => "cosh(" ^ (translate_expr vars table arg) ^ ")" 
+                   | "ArcSin" => "arcsin(" ^ (translate_expr vars table arg) ^ ")" 
                    | "Log" => "ln(" ^ (translate_expr vars table arg) ^ ")" 
-                   | _ => raise TranslationError ("Invalid function", e))
+                   | _ => raise TranslationError ("Invalid one-paramter function", e))
   | arglist => let val join_with = fn x => "(" ^ String.concatWith x (
                                      map (translate_expr vars table) arglist) ^ ")"
                  in (case fname of
@@ -63,6 +66,20 @@ translate_expr vars table (e as (Fun (fname, args))) =
                           "Plus" => join_with " + " 
                         | "Times" => join_with " * " 
                         | "Or" => join_with "\<or>" 
+                        | "Inequality" => (* Inequalities are of the form Inequality[a,<=,b,<=,c] *)
+                            let fun inequality_to_string x = case x of
+                                  Id "LessEqual" => " \<le> "
+                               |  Id "Less" => " < "
+                               |  Id "GreaterEqual" => " \<ge> "
+                               |  Id "Greater" => " > "
+                               |  Id "Unequal" => " \<noteq> "
+                               |  _ => raise TranslationError ("Malformed inequality", e) 
+                            and transl x = translate_expr vars table x
+                            and handle_inequality (a::b::c::l) =
+                                (transl a) ^ inequality_to_string b ^ (transl c) ^ 
+                                (case l of [] => "" | _ => " \<and> " ^ handle_inequality (c::l))
+                            in handle_inequality arglist
+                            end
                         (* Two parameters *)
                         | "Rational" => join_with " / " 
                         | "Unequal" => join_with "\<noteq>" 
@@ -71,7 +88,7 @@ translate_expr vars table (e as (Fun (fname, args))) =
                         | "GreaterEqual" => join_with "\<ge>" 
                         | "Less" => join_with "<" 
                         | "LessEqual" => join_with "\<le>" 
-                        | _ => raise TranslationError ("Invalid function", e))
+                        | _ => raise TranslationError ("Invalid multi-parameter function", e))
                  end) |
 translate_expr vars table (Id v) = Option.getOpt ((Symtab.lookup table v), hd vars) | 
 translate_expr _ _ (Int n) = if n < 0 then "-" ^ Int.toString (~ n)
