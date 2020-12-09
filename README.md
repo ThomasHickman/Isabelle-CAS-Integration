@@ -1,9 +1,9 @@
 # Isabelle-CAS-Integration
 
-Developed from the dissertations of Thomas Hickman and Christian Pardillo Laursen. 
+Developed from the dissertations of Thomas Hickman and Christian Pardillo Laursen.
 
 ## Steps for installation
- - Install [Isabelle](https://isabelle.in.tum.de).
+ - Install [Isabelle 2020](https://isabelle.in.tum.de). Earlier versions are not supported.
 
  - Add the [Ordinary_Differential_Equations](https://www.isa-afp.org/entries/Ordinary_Differential_Equations.html) entry to your Isabelle ROOTS - follow [these](https://www.isa-afp.org/using.html) instructions.
 
