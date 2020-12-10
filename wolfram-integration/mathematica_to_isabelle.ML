@@ -6,7 +6,7 @@ Translates parsed Mathematica expressions to Isabelle
 Used for translating ODE solutions back into terms: raises
 TranslationError whenever this assumption does not hold, or
 some translation has not been implemented.
-*) 
+*)
 
 signature MATHEMATICA_TO_ISABELLE =
 sig
@@ -39,7 +39,7 @@ fun translate_expr vars table (e as (Fun ("Power", args))) =
         (* ^ has type signature real -> nat -> real *)
       | [base, Int n] => let val trans_base = translate_expr vars table base
                          in (if n >= 0
-                            then "(" ^ trans_base ^ " ^ " ^ translate_expr vars table (Int n) ^ ")" 
+                            then "(" ^ trans_base ^ " ^ " ^ translate_expr vars table (Int n) ^ ")"
                             else if n = ~1 then "(1 / " ^ trans_base ^ ")"
                                   else "(1 / (" ^ trans_base ^ ") ^ " ^
                                       translate_expr vars table (Int (~n)) ^ ")")
@@ -53,44 +53,47 @@ translate_expr vars table (e as (Fun (fname, args))) =
     ([arg]) => (case fname of
                      "C" => let val Int n = arg in nth vars n end
                    | "Sin" => "sin(" ^ (translate_expr vars table arg) ^ ")"
-                   | "Cos" => "cos(" ^ (translate_expr vars table arg) ^ ")" 
-                   | "Sinh" => "sinh(" ^ (translate_expr vars table arg) ^ ")" 
-                   | "Cosh" => "cosh(" ^ (translate_expr vars table arg) ^ ")" 
-                   | "ArcSin" => "arcsin(" ^ (translate_expr vars table arg) ^ ")" 
-                   | "Log" => "ln(" ^ (translate_expr vars table arg) ^ ")" 
+                   | "Cos" => "cos(" ^ (translate_expr vars table arg) ^ ")"
+                   | "Sinh" => "sinh(" ^ (translate_expr vars table arg) ^ ")"
+                   | "Cosh" => "cosh(" ^ (translate_expr vars table arg) ^ ")"
+                   | "ArcSin" => "arcsin(" ^ (translate_expr vars table arg) ^ ")"
+                   | "Log" => "ln(" ^ (translate_expr vars table arg) ^ ")"
                    | _ => raise TranslationError ("Invalid one-paramter function", e))
   | arglist => let val join_with = fn x => "(" ^ String.concatWith x (
                                      map (translate_expr vars table) arglist) ^ ")"
                  in (case fname of
                     (* Potentially many parameters *)
-                          "Plus" => join_with " + " 
-                        | "Times" => join_with " * " 
-                        | "Or" => join_with "\<or>" 
+                          "Plus" => join_with " + "
+                        | "Times" => join_with " * "
+                        | "Or" => join_with "\<or>"
+                        | "And" => join_with "\<and>"
                         | "Inequality" => (* Inequalities are of the form Inequality[a,<=,b,<=,c] *)
-                            let fun inequality_to_string x = case x of
-                                  Id "LessEqual" => " \<le> "
-                               |  Id "Less" => " < "
-                               |  Id "GreaterEqual" => " \<ge> "
-                               |  Id "Greater" => " > "
-                               |  Id "Unequal" => " \<noteq> "
-                               |  _ => raise TranslationError ("Malformed inequality", e) 
-                            and transl x = translate_expr vars table x
+                            let fun transl x = translate_expr vars table x
                             and handle_inequality (a::b::c::l) =
-                                (transl a) ^ inequality_to_string b ^ (transl c) ^ 
+                                (transl a) ^ (transl b) ^ (transl c) ^
                                 (case l of [] => "" | _ => " \<and> " ^ handle_inequality (c::l))
                             in handle_inequality arglist
                             end
                         (* Two parameters *)
-                        | "Rational" => join_with " / " 
-                        | "Unequal" => join_with "\<noteq>" 
-                        | "Equal" => join_with "=" 
-                        | "Greater" => join_with ">" 
-                        | "GreaterEqual" => join_with "\<ge>" 
-                        | "Less" => join_with "<" 
-                        | "LessEqual" => join_with "\<le>" 
+                        | "Rational" => join_with " / "
+                        | "Element" => join_with " \<in> "
+                        | "Unequal" => join_with "\<noteq>"
+                        | "Equal" => join_with "="
+                        | "Greater" => join_with ">"
+                        | "GreaterEqual" => join_with "\<ge>"
+                        | "Less" => join_with "<"
+                        | "LessEqual" => join_with "\<le>"
                         | _ => raise TranslationError ("Invalid multi-parameter function", e))
                  end) |
-translate_expr vars table (Id v) = Option.getOpt ((Symtab.lookup table v), hd vars) | 
+translate_expr vars table (Id v) =
+      (case v of
+          "LessEqual" => " \<le> "
+        | "Less" => " < "
+        | "GreaterEqual" => " \<ge> "
+        | "Greater" => " > "
+        | "Unequal" => " \<noteq> "
+        | "Integers" => "\<int>"
+        | _ => Option.getOpt ((Symtab.lookup table v), hd vars)) |
 translate_expr _ _ (Int n) = if n < 0 then "-" ^ Int.toString (~ n)
                               else Int.toString n |
 translate_expr _ _ (Real n) = if n < 0.0 then "-" ^ Real.toString (~ n)
@@ -120,7 +123,7 @@ fun get_domain indep rules =
     val mathematica_query = "FunctionDomain[{" ^ (commas fns) ^ "}," ^ indep ^ "]"
     val response = Isabelle_To_Mathematica.mathematica_output(mathematica_query)
   in parse response
-  end 
+  end
 
 fun rule_ordering (Rule (a,_), Rule (b, _)) = String.compare (a, b)
 
@@ -141,6 +144,6 @@ fun interpret_odes bound_vars free_translation odes =
   let
     val rules = (map (map to_rule o to_list) o to_list) odes
   in map (interpret_ode bound_vars free_translation) rules
-  end 
+  end
 end
 end
