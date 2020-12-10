@@ -53,20 +53,23 @@ translate_expr vars table (e as (Fun (fname, args))) =
     ([arg]) => (case fname of
                      "C" => let val Int n = arg in nth vars n end
                    | "Sin" => "sin(" ^ (translate_expr vars table arg) ^ ")"
-                   | "Cos" => "cos(" ^ (translate_expr vars table arg) ^ ")"
-                   | "Sinh" => "sinh(" ^ (translate_expr vars table arg) ^ ")"
-                   | "Cosh" => "cosh(" ^ (translate_expr vars table arg) ^ ")"
-                   | "ArcSin" => "arcsin(" ^ (translate_expr vars table arg) ^ ")"
-                   | "Log" => "ln(" ^ (translate_expr vars table arg) ^ ")"
+                   | "Cos" => "cos(" ^ (translate_expr vars table arg) ^ ")" 
+                   | "Tan" => "tan(" ^ (translate_expr vars table arg) ^ ")" 
+                   | "Sinh" => "sinh(" ^ (translate_expr vars table arg) ^ ")" 
+                   | "Cosh" => "cosh(" ^ (translate_expr vars table arg) ^ ")" 
+                   | "Tanh" => "tanh(" ^ (translate_expr vars table arg) ^ ")" 
+                   | "ArcSin" => "arcsin(" ^ (translate_expr vars table arg) ^ ")" 
+                   | "Log" => "ln(" ^ (translate_expr vars table arg) ^ ")" 
                    | _ => raise TranslationError ("Invalid one-paramter function", e))
   | arglist => let val join_with = fn x => "(" ^ String.concatWith x (
                                      map (translate_expr vars table) arglist) ^ ")"
                  in (case fname of
                     (* Potentially many parameters *)
-                          "Plus" => join_with " + "
-                        | "Times" => join_with " * "
-                        | "Or" => join_with "\<or>"
-                        | "And" => join_with "\<and>"
+                          "Plus" => join_with " + " 
+                        | "Times" => join_with " * " 
+                        | "Or" => join_with "\<or>" 
+                        | "And" => join_with "\<and>" 
+                        | "NotElement" => join_with "\<notin>" 
                         | "Inequality" => (* Inequalities are of the form Inequality[a,<=,b,<=,c] *)
                             let fun transl x = translate_expr vars table x
                             and handle_inequality (a::b::c::l) =
