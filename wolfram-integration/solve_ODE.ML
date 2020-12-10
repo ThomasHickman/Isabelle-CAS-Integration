@@ -34,31 +34,28 @@ in
       val fresh_vars = fresh_bound @ fresh_free
       val vars = bound @ free
       val translation = make_translation fresh_vars vars
-      val domain_expr = get_domain (hd fresh_vars) rules
-      val domain = if specified_domain = "" then "{" ^ (hd bound) ^ ". " ^ translate_expr bound translation domain_expr ^ "}" else specified_domain
+      val domain =
+        if specified_domain = "" then
+          let val domain_expr = get_domain (hd fresh_vars) rules in
+           case domain_expr of
+             Id _ => "T"
+            | _   => "{" ^ (hd bound) ^ ". " ^ translate_expr bound translation domain_expr ^ "}"
+          end
+        else specified_domain
       val codomain = if specified_codomain = "" then "UNIV" else specified_codomain
       (* Parse it into a term to pretty print it later *)
       val solution_term = Proof_Context.read_term_pattern @{context}
                           (interpret_ode bound translation rules)
-    in (case domain_expr of
-          (* If domain is all of the reals don't include it *)
-          Id _ => [Pretty.str "lemma \"((",
-                   Syntax.pretty_term @{context} solution_term,
-                   Pretty.str ")(",
-                   Pretty.str (commas (tl bound)),
-                   Pretty.str ") solves_ode (",
-                   Syntax.pretty_term @{context} ode,
-                   Pretty.str ")) T UNIV\" by (ode_cert)"]
-         | _   => [Pretty.str "lemma \" ((",
-                   Syntax.pretty_term @{context} solution_term,
-                   Pretty.str ")(",
-                   Pretty.str (commas (tl bound)),
-                   Pretty.str ") solves_ode (",
-                   Syntax.pretty_term @{context} ode,
-                   Pretty.str "))",
-                   Pretty.str domain,
-                   Pretty.str (" " ^ codomain ^ "\" by (ode_cert)")])
-                |> Pretty.paragraph
+    in [Pretty.str "lemma \" ((",
+       Syntax.pretty_term @{context} solution_term,
+       Pretty.str ")(",
+       Pretty.str (commas (tl bound)),
+       Pretty.str ") solves_ode (",
+       Syntax.pretty_term @{context} ode,
+       Pretty.str "))",
+       Pretty.str domain,
+       Pretty.str (" " ^ codomain ^ "\" by (ode_cert)")]
+          |> Pretty.paragraph
     end 
 
 end
