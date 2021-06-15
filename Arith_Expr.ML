@@ -11,13 +11,15 @@ datatype AExp =
 
 type SODE = AExp Symtab.table;
 
+val foldl1_BOp: string -> AExp list -> AExp
+val foldr1_BOp: string -> AExp list -> AExp
 val rev_conv: Symtab.key Symtab.table -> Symtab.key Symtab.table
 val aexp_conv: string Symtab.table -> AExp -> AExp
 val sode_conv: string Symtab.table -> SODE -> SODE
 
 end
 
-structure Arith_Expr: ARITH_EXPR =
+structure Arith_Expr : ARITH_EXPR =
 struct
 
 datatype AExp =
@@ -28,6 +30,9 @@ datatype AExp =
   SVar of string;
 
 type SODE = AExp Symtab.table;
+
+fun foldl1_BOp n = foldl1 (fn (x, y) => BOp (n, x, y));
+fun foldr1_BOp n = foldr1 (fn (x, y) => BOp (n, x, y));
 
 (* Reverse a conversion table *)
 fun rev_conv cnv = Symtab.make (map (fn (x, y) => (y, x)) (Symtab.dest cnv))

@@ -20,33 +20,74 @@ sig
   exception TranslationError of string * Parse_Mathematica.expr
 end
 
-structure Mathematica_To_Isabelle : MATHEMATICA_TO_ISABELLE =
+structure Mathematica_To_Isabelle =
 struct
 (* Raised when the translation of an expression is not implemented *)
-  local open Parse_Mathematica
+  local open Parse_Mathematica; open Arith_Expr
   in
 exception TranslationError of (string * expr)
 
 datatype rule = Rule of string * expr
 datatype ode_solution = Solution of rule list
 
-
-
 (* Handle powers separately *)
-fun translate_expr vars table (e as (Fun ("Power", args))) =
+fun translate_expr vars (e as (Fun ("Power", args))) =
   (case args of
-        [Id "E", exponent] => "exp(" ^ (translate_expr vars table exponent) ^ ")"
+        [Id "E", exponent] => UOp (@{const_name "exp"}, translate_expr vars exponent)
         (* ^ has type signature real -> nat -> real *)
-      | [base, Int n] => let val trans_base = translate_expr vars table base
+      | [base, Int n] => let val trans_base = translate_expr vars base
                          in (if n >= 0
-                            then "(" ^ trans_base ^ " ^ " ^ translate_expr vars table (Int n) ^ ")"
-                            else if n = ~1 then "(1 / " ^ trans_base ^ ")"
-                                  else "(1 / (" ^ trans_base ^ ") ^ " ^
-                                      translate_expr vars table (Int (~n)) ^ ")")
+                            then BOp (@{const_name "power"}, trans_base, translate_expr vars (Int n))
+                            else if n = ~1 then BOp (@{const_name "divide"}, Num 1, trans_base)
+                                  else BOp (@{const_name "power"}
+                                           , BOp (@{const_name "divide"}, Num 1, trans_base)
+                                           , translate_expr vars (Int (~n))))
                          end
-      | [base, exponent] => "(" ^ (translate_expr vars table base) ^ " powr "
-                               ^ (translate_expr vars table exponent) ^ ")"
+      | [base, exponent] => BOp (@{const_name powr}, translate_expr vars base, translate_expr vars exponent)
       | _ => raise TranslationError ("Invalid application of power", e)) |
+translate_expr vars (e as (Fun (fname, args))) =
+  (case args of
+    (* One parameter functions *)
+    ([arg]) => (case fname of
+                     "C" => let val Int n = arg in nth vars (n-1) end
+                   | "Sin" => UOp (@{const_name sin}, translate_expr vars arg)
+                   | "Cos" => UOp (@{const_name cos}, translate_expr vars arg)
+                   | "Tan" => UOp (@{const_name tan}, translate_expr vars arg) 
+                   | "Sinh" => UOp (@{const_name sinh}, translate_expr vars arg) 
+                   | "Cosh" => UOp (@{const_name cosh}, translate_expr vars arg) 
+                   | "Tanh" => UOp (@{const_name tanh}, translate_expr vars arg) 
+                   | "ArcSin" => UOp (@{const_name arcsin}, translate_expr vars arg)
+                   | "Log" => UOp (@{const_name ln}, translate_expr vars arg) 
+                   | _ => raise TranslationError ("Invalid one-paramter function", e))
+  | arglist => let val join_with = fn x => foldl1_BOp x (map (translate_expr vars) arglist)
+                 in (case fname of
+                    (* Potentially many parameters *)
+                          "Plus" => join_with @{const_name plus} 
+                        | "Times" => join_with @{const_name times} 
+                        | "Or" => join_with @{const_name disj} 
+                        | "And" => join_with @{const_name conj}  
+                        | "NotElement" => join_with "HOL.not_member" 
+(*                        | "Inequality" => (* Inequalities are of the form Inequality[a,<=,b,<=,c] *)
+                            let fun transl x = translate_expr vars x
+                            and handle_inequality (a::b::c::l) =
+                                (transl a) ^ (transl b) ^ (transl c) ^
+                                (case l of [] => "" | _ => " \<and> " ^ handle_inequality (c::l))
+                            in handle_inequality arglist
+                            end *)
+                        (* Two parameters *)
+                        | "Rational" => join_with @{const_name divide}
+                        | "Element" => join_with @{const_name "Set.member"}
+                        | "Unequal" => join_with "HOL.not_equal"
+                        | "Equal" => join_with @{const_name "HOL.equal"}
+                        | "Greater" => join_with ">"
+                        | "GreaterEqual" => join_with "\<ge>"
+                        | "Less" => join_with "<"
+                        | "LessEqual" => join_with "\<le>"
+                        | _ => raise TranslationError ("Invalid multi-parameter function", e))
+                 end)
+
+(*
+ |
 translate_expr vars table (e as (Fun (fname, args))) =
   (case args of
     (* One parameter functions *)
@@ -148,5 +189,7 @@ fun interpret_odes bound_vars free_translation odes =
     val rules = (map (map to_rule o to_list) o to_list) odes
   in map (interpret_ode bound_vars free_translation) rules
   end
+*)
+
 end
 end

@@ -22,8 +22,11 @@ sig
   val collect_rhs : term -> term list
 end
 
-structure Isabelle_To_Mathematica: ISABELLE_TO_MATHEMATICA =
+structure Isabelle_To_Mathematica =
 struct 
+local
+  open Arith_Expr
+in
 
 exception SyntaxError of string;
 
@@ -31,6 +34,71 @@ exception SyntaxError of string;
  * Arguments:
  *  variable names to be used for bound variables, in order of appearance
  *  term to be translated *)
+
+fun translate_term indep (BOp (name, lhs, rhs)) =
+  let
+    val printL = translate_term indep lhs
+    and printR = translate_term indep rhs
+    fun printFun f = f ^ "[" ^ printL ^ "," ^ printR ^ "]"
+  in
+  case name of
+       @{const_name "plus"} => printFun "Plus" 
+     | @{const_name "minus"} => "Plus[" ^ printL ^ ", Minus[" ^ printR ^"]]" 
+     | @{const_name "divide"} => "Times[" ^ printL ^ ", Power[" ^ printR ^ ",-1]]" 
+     | @{const_name "times"} => printFun "Times" 
+     | @{const_name "power"} => printFun "Power" 
+     | @{const_name "powr"} => printFun "Power" 
+     | _ => raise SyntaxError name
+  end |
+
+translate_term indep (Num n) =
+      Int.toString n |
+
+translate_term indep (UOp (name, arg)) =
+  let
+    val printV = translate_term indep arg
+    fun printFun f = f ^ "[" ^ printV ^ "]"
+  in
+    (case name of
+          @{const_name "uminus"} => printFun "Minus" 
+        | @{const_name "ln"} => printFun "Log" 
+        | @{const_name "exp"} => printFun "Exp" 
+        | @{const_name "sin"} => printFun "Sin" 
+        | @{const_name "cos"} => printFun "Cos" 
+        | @{const_name "tan"} => printFun "Tan" 
+        | @{const_name "sinh"} => printFun "Sinh" 
+        | @{const_name "cosh"} => printFun "Cosh" 
+        | @{const_name "sqrt"} => "Power[" ^ printV ^ ", Rational[1,2]]" 
+        | @{const_name "arcsin"} => printFun "ArcSin" 
+        | @{const_name "arccos"} => printFun "ArcCos" 
+        | @{const_name "arctan"} => printFun "ArcTan" 
+        | _ => raise SyntaxError name)
+  end |
+translate_term indep (SVar x) = x ^ "[" ^ indep ^ "]" |
+translate_term indep (CVar x) = x;
+
+fun translate_sode indep sode =
+  let
+    val vars = Symtab.keys sode
+    val mathematica_vars = map (fn x => x ^ ("[" ^ indep ^ "]")) vars
+    val derivatives = map (translate_term indep o the o Symtab.lookup sode) (Symtab.keys sode)
+    val mathematica_system = ListPair.map (fn (x, y) => x ^ "'[" ^ indep ^ "]==" ^ y) (vars, derivatives)
+  in "DSolve[{" ^ (String.concatWith "," mathematica_system) ^ "}, {" ^
+                  (String.concatWith "," mathematica_vars) ^ "}, " ^
+                  indep ^ "]"
+  end;
+
+fun mk_var_conv sode = Symtab.make (ListPair.zip (Symtab.keys sode, Name.invent_list [] (String.implode (replicate (1 + (length (Symtab.keys sode) div 27)) #"a")) (length (Symtab.keys sode))))
+
+fun my_tracing x = let val _ = writeln x in x end
+
+fun mathematica_output(text) =
+  fst (Isabelle_System.bash_output 
+      ("echo \"OutputForm @ Quiet[FullForm[" ^ text ^ "]]\" | wolframscript -noprompt" |> my_tracing))
+
+end
+
+(*
 
 (* Two-argument functions *)
 fun translate_term bound free (Const (name, _) $ lhs $ rhs) =
@@ -164,4 +232,6 @@ fun my_tracing x = let val _ = writeln x in x end
 fun mathematica_output(text) =
   fst (Isabelle_System.bash_output 
       ("echo \"OutputForm @ Quiet[FullForm[" ^ text ^ "]]\" | wolframscript -noprompt" |> my_tracing))
+*)
+
 end
