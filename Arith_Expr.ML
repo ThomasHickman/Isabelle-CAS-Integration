@@ -7,9 +7,10 @@ datatype AExp =
   BOp of string * AExp * AExp |
   Num of int | 
   CVar of string |
-  SVar of string;
+  SVar of string |
+  IVar;
 
-type SODE = AExp Symtab.table;
+type SODE = {ivar: string, odes: AExp Symtab.table};
 
 val foldl1_BOp: string -> AExp list -> AExp
 val foldr1_BOp: string -> AExp list -> AExp
@@ -27,9 +28,10 @@ datatype AExp =
   BOp of string * AExp * AExp |
   Num of int | 
   CVar of string |
-  SVar of string;
+  SVar of string |
+  IVar;
 
-type SODE = AExp Symtab.table;
+type SODE = {ivar: string, odes: AExp Symtab.table};
 
 fun foldl1_BOp n = foldl1 (fn (x, y) => BOp (n, x, y));
 fun foldr1_BOp n = foldr1 (fn (x, y) => BOp (n, x, y));
@@ -41,9 +43,10 @@ fun aexp_conv cnv (UOp (n, e)) = UOp (n, aexp_conv cnv e)
 | aexp_conv cnv (BOp (n, e, f)) = BOp (n, aexp_conv cnv e, aexp_conv cnv f)
 | aexp_conv _ (Num n) = Num n
 | aexp_conv cnv (CVar x) = (case Symtab.lookup cnv x of NONE => CVar x | SOME y => CVar y)
-| aexp_conv cnv (SVar x) = (case Symtab.lookup cnv x of NONE => CVar x | SOME y => SVar y);
+| aexp_conv cnv (SVar x) = (case Symtab.lookup cnv x of NONE => CVar x | SOME y => SVar y)
+| aexp_conv _ IVar = IVar;
 
-fun sode_conv cnv sode = 
-  Symtab.make (map (fn (x, e) => (case Symtab.lookup cnv x of NONE => x | SOME y => y, aexp_conv cnv e)) (Symtab.dest sode));
+fun sode_conv cnv {ivar = ivar, odes = odes} = 
+  {ivar = ivar, odes = Symtab.make (map (fn (x, e) => (case Symtab.lookup cnv x of NONE => x | SOME y => y, aexp_conv cnv e)) (Symtab.dest odes))};
 
 end

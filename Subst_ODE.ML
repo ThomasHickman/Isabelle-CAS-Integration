@@ -4,10 +4,10 @@ signature SUBST_ODE =
 sig
     val aexp_sexp: Proof.context -> Arith_Expr.AExp -> term
     val sexp_aexp: term -> Arith_Expr.AExp
-    val subst_ode: term -> Arith_Expr.SODE
+    val subst_ode: string -> term -> Arith_Expr.SODE
 end
 
-structure Subst_ODE : SUBST_ODE=
+structure Subst_ODE : SUBST_ODE =
 struct
 local
 open Arith_Expr;
@@ -34,7 +34,7 @@ fun sexp_aexp (Const (@{const_name SEXP}, _) $ Abs (_, _, e)) = sexp_aexp e
 
 fun aexp_sexp ctx e = Const (@{const_name "SEXP"}, dummyT) $ absfree (Lift_Expr.state_id, dummyT) (aexp_sexp' ctx e);
 
-fun subst_ode s = Symtab.map (fn _ => fn v => sexp_aexp v) (Expr_Util.subst_tab s);
+fun subst_ode ivar s = {ivar = ivar, odes = Symtab.map (fn _ => fn v => sexp_aexp v) (Expr_Util.subst_tab s)};
 
 end
 

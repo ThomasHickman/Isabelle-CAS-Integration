@@ -77,15 +77,15 @@ translate_term indep (UOp (name, arg)) =
 translate_term indep (SVar x) = x ^ "[" ^ indep ^ "]" |
 translate_term indep (CVar x) = x;
 
-fun translate_sode indep sode =
-  let
-    val vars = Symtab.keys sode
-    val mathematica_vars = map (fn x => x ^ ("[" ^ indep ^ "]")) vars
-    val derivatives = map (translate_term indep o the o Symtab.lookup sode) (Symtab.keys sode)
-    val mathematica_system = ListPair.map (fn (x, y) => x ^ "'[" ^ indep ^ "]==" ^ y) (vars, derivatives)
+fun translate_sode {ivar = ivar, odes = odes} =
+  let 
+    val vars = Symtab.keys odes
+    val mathematica_vars = map (fn x => x ^ ("[" ^ ivar ^ "]")) vars
+    val derivatives = map (translate_term ivar o the o Symtab.lookup odes) (Symtab.keys odes)
+    val mathematica_system = ListPair.map (fn (x, y) => x ^ "'[" ^ ivar ^ "]==" ^ y) (vars, derivatives)
   in "DSolve[{" ^ (String.concatWith "," mathematica_system) ^ "}, {" ^
                   (String.concatWith "," mathematica_vars) ^ "}, " ^
-                  indep ^ "]"
+                  ivar ^ "]"
   end;
 
 fun mk_var_conv sode = Symtab.make (ListPair.zip (Symtab.keys sode, Name.invent_list [] (String.implode (replicate (1 + (length (Symtab.keys sode) div 27)) #"a")) (length (Symtab.keys sode))))
