@@ -38,7 +38,7 @@ fun translate_expr sode (e as (Fun ("Power", args))) =
       | [base, Int n] => let val trans_base = translate_expr sode base
                          in (if n >= 0
                             then BOp (@{const_name "power"}, trans_base, translate_expr sode (Int n))
-                            else if n = ~1 then BOp (@{const_name "divide"}, Num 1, trans_base)
+                            else if n = ~1 then BOp (@{const_abbrev inverse_divide}, Num 1, trans_base)
                                   else BOp (@{const_name "power"}
                                            , BOp (@{const_name "divide"}, Num 1, trans_base)
                                            , translate_expr sode (Int (~n))))
@@ -46,7 +46,7 @@ fun translate_expr sode (e as (Fun ("Power", args))) =
       | [base, exponent] => BOp (@{const_name powr}, translate_expr sode base, translate_expr sode exponent)
       | _ => raise TranslationError ("Invalid application of power", e)) |
 translate_expr (sode as {ivar = _, odes = odes}) (e as (Fun (fname, args))) =
-  (case @{print} args of
+  (case args of
     (* One parameter functions *)
     ([arg]) => (case fname of
                      "C" => let val Int n = arg in SVar (nth (Symtab.keys odes) (n-1)) end
@@ -66,7 +66,7 @@ translate_expr (sode as {ivar = _, odes = odes}) (e as (Fun (fname, args))) =
                         | "Times" => join_with @{const_name times} 
                         | "Or" => join_with @{const_name disj} 
                         | "And" => join_with @{const_name conj}  
-                        | "NotElement" => join_with "HOL.not_member" 
+                        | "NotElement" => join_with @{const_abbrev Set.not_member} 
 (*                        | "Inequality" => (* Inequalities are of the form Inequality[a,<=,b,<=,c] *)
                             let fun transl x = translate_expr sode x
                             and handle_inequality (a::b::c::l) =
@@ -77,12 +77,12 @@ translate_expr (sode as {ivar = _, odes = odes}) (e as (Fun (fname, args))) =
                         (* Two parameters *)
                         | "Rational" => join_with @{const_name divide}
                         | "Element" => join_with @{const_name "Set.member"}
-                        | "Unequal" => join_with "HOL.not_equal"
+                        | "Unequal" => join_with @{const_abbrev HOL.not_equal}
                         | "Equal" => join_with @{const_name "HOL.equal"}
-                        | "Greater" => join_with ">"
-                        | "GreaterEqual" => join_with "\<ge>"
-                        | "Less" => join_with "<"
-                        | "LessEqual" => join_with "\<le>"
+                        | "Greater" => join_with @{const_abbrev greater}
+                        | "GreaterEqual" => join_with @{const_abbrev greater_eq}
+                        | "Less" => join_with @{const_name less}
+                        | "LessEqual" => join_with @{const_name less_eq}
                         | _ => raise TranslationError ("Invalid multi-parameter function", e))
                  end)
 
@@ -184,15 +184,18 @@ fun rule_ordering (Rule (a,_), Rule (b, _)) = String.compare (a, b)
 
 (* Takes a single ODE solution, in the form of a list of rules *)
 fun interpret_ode sode rules =
-  let val (source, target) =
-      split_list (map (fn (Rule (param, rhs)) =>
-                    ( param
-                    , translate_expr sode rhs)
-                    ) (sort rule_ordering rules))
+(*   let val (source, target) = *)
+      Symtab.make (
+      map (fn (Rule (param, rhs)) =>
+              ( param
+              , translate_expr sode rhs)
+              ) (sort rule_ordering rules))
+  (*
   in (source, target) (* source = name of variable, target = expression *)
      (* "\<lambda> (" ^ String.concatWith "," source ^ ") " ^ nth vars 0 ^ ". ("
      ^ String.concatWith "," target ^ ")" *)
   end
+  *)
 
 (*
 fun my_tracing x = let val _ = writeln x in x end

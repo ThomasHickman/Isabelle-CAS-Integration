@@ -94,7 +94,7 @@ fun my_tracing x = let val _ = writeln x in x end
 
 fun mathematica_output(text) =
   fst (Isabelle_System.bash_output 
-      ("echo \"OutputForm @ Quiet[FullForm[" ^ text ^ "]]\" | wolframscript -noprompt" |> my_tracing))
+      ("echo \"OutputForm @ Quiet[FullForm[" ^ text ^ "]]\" | wolframscript -noprompt"))
 
 end
 
