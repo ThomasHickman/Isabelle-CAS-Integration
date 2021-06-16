@@ -1,7 +1,7 @@
 section \<open> Substitutions as ODEs \<close>
 
 theory Subst_ODE
-  imports "Shallow-Expressions.Substitutions" "verification/ODE_extra"
+  imports "Shallow-Expressions.Substitutions" "Hybrid-Library.Derivative_Lib"
 begin
 
 ML_file \<open>Arith_Expr.ML\<close>
@@ -18,11 +18,12 @@ struct
   fun solve_subst_ode ctx sode =
   let
     open Isabelle_To_Mathematica; open Mathematica_To_Isabelle; open Subst_ODE;
-    val sode = Subst_ODE.subst_ode "t" sode;
+    val sode = subst_ode "t" sode;
     val out = mathematica_output (translate_sode sode);
     val mexp = Parse_Mathematica.parse out;
     val rules = (map (map to_rule o to_list) o to_list) mexp;
-  in Syntax.check_term ctx (ode_subst ctx "t" (interpret_ode sode (hd rules)))
+    val tm = ode_subst ctx "t" (interpret_ode sode (hd rules))
+  in Syntax.check_term ctx tm
   end;
 
   fun solve_subst_ode_cmd ctx sode = 

@@ -51,7 +51,10 @@ fun translate_term indep (BOp (name, lhs, rhs)) =
      | _ => raise SyntaxError name
   end |
 
-translate_term indep (Num n) =
+translate_term indep (NNat n) =
+      Int.toString n |
+
+translate_term indep (NInt n) =
       Int.toString n |
 
 translate_term indep (UOp (name, arg)) =
@@ -93,8 +96,10 @@ fun mk_var_conv sode = Symtab.make (ListPair.zip (Symtab.keys sode, Name.invent_
 fun my_tracing x = let val _ = writeln x in x end
 
 fun mathematica_output(text) =
+  let val _ = writeln "Calling Wolfram..." in
   fst (Isabelle_System.bash_output 
       ("echo \"OutputForm @ Quiet[FullForm[" ^ text ^ "]]\" | wolframscript -noprompt"))
+  end
 
 end
 

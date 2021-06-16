@@ -37,10 +37,10 @@ fun translate_expr sode (e as (Fun ("Power", args))) =
         (* ^ has type signature real -> nat -> real *)
       | [base, Int n] => let val trans_base = translate_expr sode base
                          in (if n >= 0
-                            then BOp (@{const_name "power"}, trans_base, translate_expr sode (Int n))
-                            else if n = ~1 then BOp (@{const_abbrev inverse_divide}, Num 1, trans_base)
+                            then BOp (@{const_name "power"}, trans_base, NNat n)
+                            else if n = ~1 then BOp (@{const_abbrev inverse_divide}, NInt 1, trans_base)
                                   else BOp (@{const_name "power"}
-                                           , BOp (@{const_name "divide"}, Num 1, trans_base)
+                                           , BOp (@{const_name "divide"}, NInt 1, trans_base)
                                            , translate_expr sode (Int (~n))))
                          end
       | [base, exponent] => BOp (@{const_name powr}, translate_expr sode base, translate_expr sode exponent)
@@ -144,7 +144,7 @@ translate_expr {ivar = ivar, odes = odes} (Id v) =
                else if (v = ivar) 
                then IVar
                else CVar v) |
-translate_expr _ (Int n) = Num n 
+translate_expr _ (Int n) = NInt n 
 (*
 |
 translate_expr _ (Real n) = if n < 0.0 then "-" ^ Real.toString (~ n)
