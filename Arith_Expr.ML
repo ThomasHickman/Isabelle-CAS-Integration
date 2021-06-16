@@ -2,15 +2,21 @@
 
 signature ARITH_EXPR =
 sig
+
+(* Binder-free arithmetic expressions with an constants, state variables, and an independent variable *)
+
 datatype AExp =
   UOp of string * AExp |
   BOp of string * AExp * AExp |
   NNat of int | 
   NInt of int |
   NReal of real |
-  CVar of string |
-  SVar of string |
-  IVar;
+  CVar of string | (* Constant *)
+  SVar of string | (* State variable *)
+  IVar; (* Independent variable *)
+
+(* A system of ODEs consists of an independent variable a set of mappings from variable names to
+  arithmetic expressions. *)
 
 type SODE = {ivar: string, odes: AExp Symtab.table};
 
