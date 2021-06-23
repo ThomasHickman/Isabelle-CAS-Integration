@@ -26,11 +26,15 @@ val rev_conv: Symtab.key Symtab.table -> Symtab.key Symtab.table
 val aexp_conv: string Symtab.table -> AExp -> AExp
 val sode_conv: string Symtab.table -> SODE -> SODE
 val read_aexp: string -> AExp
+val read_sol: string -> AExp Symtab.table
 
 end
 
-structure Arith_Expr : ARITH_EXPR =
+structure Arith_Expr  =
 struct
+local
+  open Parse
+in
 
 datatype AExp =
   UOp of string * AExp |
@@ -72,10 +76,16 @@ fun parse_aexp xs =
   || (reserved "CVar" |-- Parse.string >> CVar)
   || (reserved "SVar" |-- Parse.string >> SVar)
   || (reserved "IVar" >> (fn _ => IVar))
-  || (reserved "UOp" |-- Parse.string -- ($$$ "(" |--  parse_aexp --| $$$ ")") >> UOp)
-  || (reserved "BOp" |-- Parse.string -- ($$$ "(" |--  parse_aexp --| $$$ ")") -- ($$$ "(" |--  parse_aexp --| $$$ ")") >> (fn ((n, e), f) => BOp (n, e, f)))) xs
+  || (reserved "UOp" |-- $$$ "(" |-- Parse.string -- ($$$ "," |-- parse_aexp --| $$$ ")") >> UOp)
+  || (reserved "BOp" |-- $$$ "(" |-- Parse.string -- ($$$ "," |-- parse_aexp) -- ($$$ "," |-- parse_aexp --| $$$ ")") >> (fn ((n, e), f) => BOp (n, e, f)))) xs
   end;
 
 fun read_aexp xs = fst (parse_aexp (filter Token.is_proper (Token.explode (Thy_Header.get_keywords' @{context}) Position.none xs)));
+
+val parse_sol = $$$ "[" |-- list ($$$ "(" |-- (string -- ($$$ "," |-- parse_aexp --| $$$ ")"))) --| $$$ "]";
+
+fun read_sol xs = Symtab.make (fst (parse_sol (filter Token.is_proper (Token.explode (Thy_Header.get_keywords' @{context}) Position.none xs))));
+
+end
 
 end
