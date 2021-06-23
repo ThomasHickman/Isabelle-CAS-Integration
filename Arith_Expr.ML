@@ -25,6 +25,7 @@ val foldr1_BOp: string -> AExp list -> AExp
 val rev_conv: Symtab.key Symtab.table -> Symtab.key Symtab.table
 val aexp_conv: string Symtab.table -> AExp -> AExp
 val sode_conv: string Symtab.table -> SODE -> SODE
+val read_aexp: string -> AExp
 
 end
 
@@ -60,5 +61,21 @@ fun aexp_conv cnv (UOp (n, e)) = UOp (n, aexp_conv cnv e)
 
 fun sode_conv cnv {ivar = ivar, odes = odes} = 
   {ivar = ivar, odes = Symtab.make (map (fn (x, e) => (case Symtab.lookup cnv x of NONE => x | SOME y => y, aexp_conv cnv e)) (Symtab.dest odes))};
+
+
+fun parse_aexp xs =
+  let open Parse
+  in
+  ((reserved "NNat" |-- Parse.int >> NNat)
+  || (reserved "NInt" |-- Parse.int >> NInt)
+  || (reserved "NReal" |-- Parse.real >> NReal)
+  || (reserved "CVar" |-- Parse.string >> CVar)
+  || (reserved "SVar" |-- Parse.string >> SVar)
+  || (reserved "IVar" >> (fn _ => IVar))
+  || (reserved "UOp" |-- Parse.string -- ($$$ "(" |--  parse_aexp --| $$$ ")") >> UOp)
+  || (reserved "BOp" |-- Parse.string -- ($$$ "(" |--  parse_aexp --| $$$ ")") -- ($$$ "(" |--  parse_aexp --| $$$ ")") >> (fn ((n, e), f) => BOp (n, e, f)))) xs
+  end;
+
+fun read_aexp xs = fst (parse_aexp (filter Token.is_proper (Token.explode (Thy_Header.get_keywords' @{context}) Position.none xs)));
 
 end
