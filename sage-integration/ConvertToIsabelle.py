@@ -17,17 +17,14 @@ from sympy import Q, S, Union, ask, assuming
 def assert_equals(a, b):
     assert a == b, str(a) + " != " + str(b)
 
-infix_mappings = {
-    Ops.add_vararg: (' + ', 1),
-    operator.add: (' + ', 1),
-    operator.sub: (' - ', 1),
-    Ops.mul_vararg: (' * ', 2),
-    operator.mul: (' * ', 2),
-    operator.truediv: ('/', 2),
-    operator.pow: ("powr", 3) # NOTE: integer powers are handled differently
-}
-
 fn_mappings = {
+    Ops.add_vararg: 'plus',
+    operator.add: 'plus',
+    operator.sub: 'minus',
+    Ops.mul_vararg: 'times',
+    operator.mul: 'times',
+    operator.truediv: 'divide',
+    # NOTE: powers are handled in a separate code path
     Fn.sin: "sin",
     Fn.cos: "cos",
     Fn.sec: "sec",
@@ -59,6 +56,28 @@ fn_mappings = {
     Fn.ln: "ln",
     Fn.exp: "exp",
 }
+
+# `print_isabelle*` functions - print 
+def print_isabelle_UOp(func_name: str, lhs: str, rhs: str):
+    return f"UOp({func_name}, {lhs}, {rhs})"
+
+def print_isabelle_BOp(func_name: str, arg: str):
+    return f"BOp({func_name}, {arg})"
+
+def print_isabelle_number(num: Union[float, int]):
+    try:
+        int_num = int(num)
+        if int_num >= 1:
+            return f"NNat({int_num})"
+        else:
+            return f"NInt({int_num})" 
+    except ValueError:
+        return f"NReal({num})"
+
+def print_isabelle_Var(var_name: str):
+    return f"SVar({var_name})"
+
+
 
 def reconstantify(terms):
     consts = set(itertools.chain(*(term.variables() for term in terms))).difference(set(dVars + [iVar] + free_vars))
@@ -166,10 +185,10 @@ def decode_symbol(sym):
 
 def sage_power_to_isabelle(base, exp):
     if re.fullmatch("[0-9]+", exp) != None:
-        return base + "^" + exp
+        return f"BOp('power', {base}, {exp})"
 
     if exp.startswith("-"):
-        return "inverse (" + sage_power_to_isabelle(base, exp[1:]) + ")"
+        return f"UOp('inverse', {sage_power_to_isabelle(base, exp[1:])})"
 
     # if re.fullmatch("[0-9/()]+", exp) != None:
     #     num = eval(exp)
@@ -178,7 +197,7 @@ def sage_power_to_isabelle(base, exp):
     #         return "sqrt(" + base + ")" +\
     #             ("" if num == 0.5 else "*" + base + ("" if num == 1.5 else "^" + str(int(num - 0.5))))
 
-    return base + " powr " + exp
+    return f"BOp('powr', {base}, {exp})"
 
 def sage_is_numeric(expr):
     try:
@@ -188,40 +207,38 @@ def sage_is_numeric(expr):
     return False
 
 def exprToIsabelle(expr):
+    """Converts a sage expression to an Isabelle AExp"""
     if sage_is_numeric(expr):
-        return str(expr)
+        return f"NReal({expr})"
     elif expr == pi:
-        return "pi"
+        return "NReal(pi)"
     elif expr == e:
-        return "exp(1)"
+        return "UOp(exp, NNat(1))"
     elif expr.is_symbol():
-        return "(" + decode_symbol(str(expr)) + " :: real)"
+        return f"CVar({decode_symbol(str(expr)) })"
     else:
         op = expr.operator()
         opands = expr.operands()
         opands_strs = []
         for opand in opands:
             opand_str = exprToIsabelle(opand)
-            opand_operator = opand.operator()
-            if sage_is_numeric(opand) and not opand.is_integer():
-                opand_operator = operator.truediv
-
-            if  op in infix_mappings and \
-                opand_operator in infix_mappings and \
-                infix_mappings[opand_operator][1] < infix_mappings[op][1]:
-
-                opand_str = "(" + opand_str + ")"
+            opand_str = "(" + opand_str + ")"
 
             opands_strs.append(opand_str)
 
         if op == operator.pow:
             return sage_power_to_isabelle(opands_strs[0], opands_strs[1])
-        if op in infix_mappings:
-            return infix_mappings[op][0].join(opands_strs)
         elif op in fn_mappings:
-            return fn_mappings[op] + "(" + ",".join(opands_strs) + ")"
-        elif op == iVar or op in [dVar.operator() for dVar in dVars]:
-            return op.name() + "(" + ",".join(opands_strs) + ")"
+            if len(opands_strs) == 1:
+                return f"UOp({opands_strs[0]})"
+            elif len(opands_strs) == 2:
+                return f"BOp({opands_strs[0]}, {opands_strs[1]})"
+            else:
+                raise AssertionError
+        elif op == iVar:
+            return "IVar"
+        elif op in [dVar.operator() for dVar in dVars]:
+            return f"SVar({op})"
         else:
             raise Exception("Cannot parse expression: " + str(expr))
 
