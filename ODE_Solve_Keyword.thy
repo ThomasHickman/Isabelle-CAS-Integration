@@ -1,7 +1,6 @@
 theory ODE_Solve_Keyword
   imports
     "verification/ODE_extra"
-  keywords "ode_solve" :: diag and "ode_solve_thm" :: thy_decl
 begin
 
  

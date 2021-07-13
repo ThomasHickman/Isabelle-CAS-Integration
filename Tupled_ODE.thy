@@ -1,5 +1,5 @@
 theory Tupled_ODE 
-  imports "Hybrid-Library.ODE_Cert"
+  imports ODE_Solve_Keyword
 begin
 
 ML_file \<open>Arith_Expr.ML\<close>
@@ -9,7 +9,8 @@ ML_file \<open>wolfram-integration/lex_mathematica.ML\<close>
 ML_file \<open>wolfram-integration/parse_mathematica.ML\<close>
 ML_file \<open>wolfram-integration/isabelle_to_mathematica.ML\<close>
 ML_file \<open>wolfram-integration/mathematica_to_isabelle.ML\<close>
-(* ML_file \<open>sage-integration/ConvertToSage.ML\<close> *)
+ML_file \<open>sage-integration/ConvertToSage.ML\<close>
+(* Below is some code that could be used to call the Sage plugin *)
 
 ML \<open> 
 structure Solve_Tupled_ODE =
@@ -41,16 +42,16 @@ struct
 end;
 \<close>
 
-(* Below is some code that could be used to call the Sage plugin *)
 
+(* Example call to the sage plugin *)
 
-(*
 ML \<open>
-val term = @{term "\<lambda> t (x, y). (1, x)"};
+val term = @{term "(\<lambda> t (x, y). (1, x))"};
 open Tupled_ODE;
 val (vs, sode) = tupled_lam_ode term;
-Convert_To_Sage.desolve sode;
+val (x, y) = Convert_To_Sage.desolve sode; 
+writeln x;
 \<close>
-*)
+
 
 end

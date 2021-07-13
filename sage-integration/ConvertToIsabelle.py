@@ -64,7 +64,7 @@ def print_isabelle_UOp(func_name: str, lhs: str, rhs: str):
 def print_isabelle_BOp(func_name: str, arg: str):
     return f"BOp({func_name}, {arg})"
 
-def print_isabelle_number(num: Union[float, int]):
+def print_isabelle_number(num):
     try:
         int_num = int(num)
         if int_num >= 1:
@@ -206,6 +206,17 @@ def sage_is_numeric(expr):
     except: pass
     return False
 
+def construct_func(name, opands_strs):
+    """
+    TODO: docs
+    """
+    if len(opands_strs) == 1:
+        return f"UOp(\"{name}\", {opands_strs[0]})"
+    elif len(opands_strs) == 2:
+        return f"BOp(\"{name}\", {opands_strs[0]}, {opands_strs[1]})"
+    else:
+        return f"BOp(\"{name}\", {opands_strs[0]}, {construct_func(name, opands_strs[1:])})"
+
 def exprToIsabelle(expr):
     """Converts a sage expression to an Isabelle AExp"""
     if sage_is_numeric(expr):
@@ -213,7 +224,7 @@ def exprToIsabelle(expr):
     elif expr == pi:
         return "NReal(pi)"
     elif expr == e:
-        return "UOp(exp, NNat(1))"
+        return "UOp(\"exp\", NNat(1))"
     elif expr.is_symbol():
         return f"CVar({decode_symbol(str(expr)) })"
     else:
@@ -229,12 +240,8 @@ def exprToIsabelle(expr):
         if op == operator.pow:
             return sage_power_to_isabelle(opands_strs[0], opands_strs[1])
         elif op in fn_mappings:
-            if len(opands_strs) == 1:
-                return f"UOp({opands_strs[0]})"
-            elif len(opands_strs) == 2:
-                return f"BOp({opands_strs[0]}, {opands_strs[1]})"
-            else:
-                raise AssertionError
+            # TODO: give this a better name
+            return construct_func(fn_mappings[op], opands_strs)
         elif op == iVar:
             return "IVar"
         elif op in [dVar.operator() for dVar in dVars]:
