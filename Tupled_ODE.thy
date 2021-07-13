@@ -46,14 +46,11 @@ end;
 (* Example call to the sage plugin *)
 
 ML \<open>
-val term = @{term "(\<lambda> t (x, y). (1, x))"};
+val term = @{term "(λ t (x, y). (1, x))"};
 open Tupled_ODE;
 val (vs, sode) = tupled_lam_ode term;
-val (x, y) = Convert_To_Sage.desolve sode;
-writeln x
-\<close>
-ML \<open>
-Arith_Expr.read_sol "[(\"x\", IVar), (\"y\", BOp (\"plus\", CVar \"1\", IVar))]"
+val (solution, range) = Convert_To_Sage.desolve sode;
+Arith_Expr.read_sol solution
 \<close>
 
 
