@@ -49,8 +49,11 @@ ML \<open>
 val term = @{term "(\<lambda> t (x, y). (1, x))"};
 open Tupled_ODE;
 val (vs, sode) = tupled_lam_ode term;
-val (x, y) = Convert_To_Sage.desolve sode; 
-writeln x;
+val (x, y) = Convert_To_Sage.desolve sode;
+writeln x
+\<close>
+ML \<open>
+Arith_Expr.read_sol "[(\"x\", IVar), (\"y\", BOp (\"plus\", CVar \"1\", IVar))]"
 \<close>
 
 

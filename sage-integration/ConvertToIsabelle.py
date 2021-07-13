@@ -14,16 +14,18 @@ from sympy.calculus.util import continuous_domain
 from sympy.sets import ImageSet, Integers, Naturals, Naturals0
 from sympy import Q, S, Union, ask, assuming
 
+
 def assert_equals(a, b):
     assert a == b, str(a) + " != " + str(b)
 
+
 fn_mappings = {
-    Ops.add_vararg: 'plus',
-    operator.add: 'plus',
-    operator.sub: 'minus',
-    Ops.mul_vararg: 'times',
-    operator.mul: 'times',
-    operator.truediv: 'divide',
+    Ops.add_vararg: "plus",
+    operator.add: "plus",
+    operator.sub: "minus",
+    Ops.mul_vararg: "times",
+    operator.mul: "times",
+    operator.truediv: "divide",
     # NOTE: powers are handled in a separate code path
     Fn.sin: "sin",
     Fn.cos: "cos",
@@ -39,7 +41,6 @@ fn_mappings = {
     Fn.arccot: "arccot",
     Fn.arccsc: "arccsc",
     Fn.arcsec: "arcsec",
-
     Fn.tanh: "tanh",
     Fn.sinh: "sinh",
     Fn.cosh: "cosh",
@@ -52,31 +53,9 @@ fn_mappings = {
     Fn.arccoth: "arccoth",
     Fn.arcsech: "arcsech",
     Fn.arccsch: "arccsch",
-
     Fn.ln: "ln",
     Fn.exp: "exp",
 }
-
-# `print_isabelle*` functions - print 
-def print_isabelle_UOp(func_name: str, lhs: str, rhs: str):
-    return f"UOp({func_name}, {lhs}, {rhs})"
-
-def print_isabelle_BOp(func_name: str, arg: str):
-    return f"BOp({func_name}, {arg})"
-
-def print_isabelle_number(num):
-    try:
-        int_num = int(num)
-        if int_num >= 1:
-            return f"NNat({int_num})"
-        else:
-            return f"NInt({int_num})" 
-    except ValueError:
-        return f"NReal({num})"
-
-def print_isabelle_Var(var_name: str):
-    return f"SVar({var_name})"
-
 
 
 def reconstantify(terms):
@@ -85,10 +64,13 @@ def reconstantify(terms):
         for termI, term in enumerate(terms):
             terms[termI] = term.subs(const == var("C" + str(i)))
 
+
 existing_stubs = []
+
+
 def stubify(term):
     """
-    Replaces all constants in `term` with "C" + a random number, in order to prevent 
+    Replaces all constants in `term` with "C" + a random number, in order to prevent
     constant collisions
     """
     global existing_stubs
@@ -100,6 +82,7 @@ def stubify(term):
 
         term = term.subs(const == stub)
     return term
+
 
 def solve_indep(eqs, i_var, d_vars):
     """
@@ -120,7 +103,7 @@ def solve_indep(eqs, i_var, d_vars):
             else:
                 de_sol = my_desolve(eq, curr_d_var, ivar=i_var)
                 sols.append(curr_d_var == de_sol)
-        
+
         if len(eqs) == len(new_eqs):
             return (sols, new_eqs)
         else:
@@ -129,19 +112,27 @@ def solve_indep(eqs, i_var, d_vars):
             eqs = new_eqs
             new_eqs = []
 
+
 def test_solve_indep():
-    t = var('t', domain='real')
-    xt, yt, zt = function('x')(t), function('y')(t), function('z')(t)
+    t = var("t", domain="real")
+    xt, yt, zt = function("x")(t), function("y")(t), function("z")(t)
 
     assert_equals(
         str(solve_indep([diff(xt, t) == xt * yt, diff(yt, t) == t], t, [xt, yt])),
-        "([y(t) == 1/2*t^2 + c1, x(t) == c2*e^(1/6*t^3 + c1*t)], [])"
+        "([y(t) == 1/2*t^2 + c1, x(t) == c2*e^(1/6*t^3 + c1*t)], [])",
     )
 
     assert_equals(
-        str(solve_indep([diff(xt, t) == 2*yt+zt, diff(zt, t) == t*xt, diff(yt, t) == t], t, [xt, yt, zt])),
-        "([y(t) == 1/2*t^2 + c1], [diff(x(t), t) == t^2 + 2*c1 + z(t), diff(z(t), t) == t*x(t)])"
+        str(
+            solve_indep(
+                [diff(xt, t) == 2 * yt + zt, diff(zt, t) == t * xt, diff(yt, t) == t],
+                t,
+                [xt, yt, zt],
+            )
+        ),
+        "([y(t) == 1/2*t^2 + c1], [diff(x(t), t) == t^2 + 2*c1 + z(t), diff(z(t), t) == t*x(t)])",
     )
+
 
 def replace_wt_higher_deriv(eqs, i_var, d_vars):
     """
@@ -154,28 +145,37 @@ def replace_wt_higher_deriv(eqs, i_var, d_vars):
             simple_odes.append(eq)
         else:
             other_odes.append(eq)
-    
+
     for i, eq in enumerate(other_odes):
         while True:
             ode_before = other_odes[i]
 
             for simple_ode in simple_odes:
                 other_odes[i] = other_odes[i].substitute_function(
-                    simple_ode.rhs().operator(), simple_ode.lhs().function())
+                    simple_ode.rhs().operator(), simple_ode.lhs().function()
+                )
 
             if ode_before == other_odes[i]:
                 break
 
     return (other_odes, simple_odes)
 
+
 def test_replace_wt_higher_deriv():
-    t = var('t', domain='real')
-    xt, yt, zt = function('x')(t), function('y')(t), function('z')(t)
+    t = var("t", domain="real")
+    xt, yt, zt = function("x")(t), function("y")(t), function("z")(t)
 
     assert_equals(
-        str(replace_wt_higher_deriv([diff(xt, t) == yt, diff(yt, t) == zt, diff(zt, t) == 2], t, [xt, yt, zt])),
-        "([diff(x(t), t, t, t) == 2], [diff(x(t), t) == y(t), diff(y(t), t) == z(t)])"
+        str(
+            replace_wt_higher_deriv(
+                [diff(xt, t) == yt, diff(yt, t) == zt, diff(zt, t) == 2],
+                t,
+                [xt, yt, zt],
+            )
+        ),
+        "([diff(x(t), t, t, t) == 2], [diff(x(t), t) == y(t), diff(y(t), t) == z(t)])",
     )
+
 
 def decode_symbol(sym):
     if sym.endswith("_SBL"):
@@ -183,12 +183,13 @@ def decode_symbol(sym):
     else:
         return sym
 
+
 def sage_power_to_isabelle(base, exp):
     if re.fullmatch("[0-9]+", exp) != None:
-        return f"BOp('power', {base}, {exp})"
+        return f'BOp("power", {base}, {exp})'
 
     if exp.startswith("-"):
-        return f"UOp('inverse', {sage_power_to_isabelle(base, exp[1:])})"
+        return f'UOp("inverse", {sage_power_to_isabelle(base, exp[1:])})'
 
     # if re.fullmatch("[0-9/()]+", exp) != None:
     #     num = eval(exp)
@@ -197,60 +198,73 @@ def sage_power_to_isabelle(base, exp):
     #         return "sqrt(" + base + ")" +\
     #             ("" if num == 0.5 else "*" + base + ("" if num == 1.5 else "^" + str(int(num - 0.5))))
 
-    return f"BOp('powr', {base}, {exp})"
+    return f'BOp("powr", {base}, {exp})'
+
 
 def sage_is_numeric(expr):
     try:
         if float(expr) == expr:
             return True
-    except: pass
+    except:
+        pass
     return False
+
 
 def construct_func(name, opands_strs):
     """
     TODO: docs
     """
     if len(opands_strs) == 1:
-        return f"UOp(\"{name}\", {opands_strs[0]})"
+        return f'UOp("{name}", {opands_strs[0]})'
     elif len(opands_strs) == 2:
-        return f"BOp(\"{name}\", {opands_strs[0]}, {opands_strs[1]})"
+        return f'BOp("{name}", {opands_strs[0]}, {opands_strs[1]})'
     else:
-        return f"BOp(\"{name}\", {opands_strs[0]}, {construct_func(name, opands_strs[1:])})"
+        return f'BOp("{name}", {opands_strs[0]}, {construct_func(name, opands_strs[1:])})'
+
 
 def exprToIsabelle(expr):
     """Converts a sage expression to an Isabelle AExp"""
     if sage_is_numeric(expr):
-        return f"NReal({expr})"
+        try:
+            int_expr = int(expr)
+            if int_expr >= 1:
+                return f"NNat {int_expr} "
+            else:
+                return f"NInt {int_expr}"
+        except ValueError:
+            return f"NReal {float(expr)}"
+
+        raise AssertionError
+        # TODO: what do we do for pi?
     elif expr == pi:
-        return "NReal(pi)"
+        return 'SVar "pi"'
     elif expr == e:
-        return "UOp(\"exp\", NNat(1))"
+        return 'UOp("exp", NNat 1)'
     elif expr.is_symbol():
-        return f"CVar({decode_symbol(str(expr)) })"
+        return f'CVar "{decode_symbol(str(expr)) }"'
     else:
         op = expr.operator()
         opands = expr.operands()
         opands_strs = []
         for opand in opands:
-            opand_str = exprToIsabelle(opand)
-            opand_str = "(" + opand_str + ")"
-
-            opands_strs.append(opand_str)
+            opands_strs.append(exprToIsabelle(opand))
 
         if op == operator.pow:
             return sage_power_to_isabelle(opands_strs[0], opands_strs[1])
         elif op in fn_mappings:
             # TODO: give this a better name
             return construct_func(fn_mappings[op], opands_strs)
-        elif op == iVar:
+        elif op == iVar.operator():
             return "IVar"
         elif op in [dVar.operator() for dVar in dVars]:
-            return f"SVar({op})"
+            return f'SVar "{op}"'
         else:
             raise Exception("Cannot parse expression: " + str(expr))
 
+
 def find_real_domain(f, symbol):
     from sympy import symbols
+
     try:
         # We first need to make sure all variables are registered as being real, before
         # we pass into continuous_domain, as the Sage conversion doesn't preserved Reals.
@@ -266,14 +280,21 @@ def find_real_domain(f, symbol):
         warnings.warn("Failed to find the domain of: " + str(f) + "\n" + str(e), RuntimeWarning)
         return S.Reals
 
+
 def test_find_real_domain():
     from sympy.abc import t as my_t
     from sympy import Union, Interval, oo, Intersection, Abs
-    assert_equals(find_real_domain(1/my_t, my_t), Union(Interval.open(-oo, 0), Interval.open(0, oo)))
+
+    assert_equals(
+        find_real_domain(1 / my_t, my_t),
+        Union(Interval.open(-oo, 0), Interval.open(0, oo)),
+    )
     assert_equals(find_real_domain(Abs(my_t), my_t), S.Reals)
+
 
 def sympy_condition_to_isabelle(cond):
     from sympy.core import relational as Re
+
     relations_map = {
         Re.Eq: " = ",
         Re.Ne: " \<noteq> ",
@@ -284,15 +305,26 @@ def sympy_condition_to_isabelle(cond):
     }
 
     if isinstance(cond, Re.Relational):
-        return exprToIsabelle(cond.lhs._sage_()) + relations_map[type(cond)] +\
-            exprToIsabelle(cond.rhs._sage_())
+        return exprToIsabelle(cond.lhs._sage_()) + relations_map[type(cond)] + exprToIsabelle(cond.rhs._sage_())
     else:
         raise RuntimeError("Cannot convert SymPy condition: " + str(cond))
 
+
 def sympy_range_to_isabelle(rng):
     from sympy import oo
-    from sympy.sets import (Interval, Union, Intersection, Complement, ImageSet, Integers, 
-        Naturals, Naturals0, FiniteSet, ConditionSet)
+    from sympy.sets import (
+        Interval,
+        Union,
+        Intersection,
+        Complement,
+        ImageSet,
+        Integers,
+        Naturals,
+        Naturals0,
+        FiniteSet,
+        ConditionSet,
+    )
+
     if isinstance(rng, Interval):
         left_bit = ""
         if rng.left != -oo:
@@ -321,15 +353,27 @@ def sympy_range_to_isabelle(rng):
         # thing, and are dummies (we need to do some renaming).
         assert len(rng.lamda.variables) == 1
         p_vars = rng.lamda.variables
-        return "{" + exprToIsabelle(rng.lamda.expr._sage_()) + \
-            "|" + " ".join([p_var.name for p_var in p_vars]) + ". " + \
-            "\<and>".join([x[0].name + " \<in> " + sympy_range_to_isabelle(x[1]) for x in zip(p_vars, rng.args[1:])]) + \
-            "}"
+        return (
+            "{"
+            + exprToIsabelle(rng.lamda.expr._sage_())
+            + "|"
+            + " ".join([p_var.name for p_var in p_vars])
+            + ". "
+            + "\<and>".join([x[0].name + " \<in> " + sympy_range_to_isabelle(x[1]) for x in zip(p_vars, rng.args[1:])])
+            + "}"
+        )
     elif isinstance(rng, FiniteSet):
         return "{" + ", ".join((exprToIsabelle(x._sage_()) for x in rng)) + "}"
     elif isinstance(rng, ConditionSet):
-        return "{" + str(rng.sym) + " \<in> " + sympy_range_to_isabelle(rng.base_set) + ". " + \
-             sympy_condition_to_isabelle(rng.condition) + "}"
+        return (
+            "{"
+            + str(rng.sym)
+            + " \<in> "
+            + sympy_range_to_isabelle(rng.base_set)
+            + ". "
+            + sympy_condition_to_isabelle(rng.condition)
+            + "}"
+        )
     elif rng == Integers:
         return "Ints"
     elif rng == Naturals0:
@@ -339,18 +383,25 @@ def sympy_range_to_isabelle(rng):
     else:
         raise RuntimeError("Cannot convert: '" + str(rng) + "' of type: '" + str(type(rng)) + "'")
 
+
 def test_sympy_range_to_isabelle():
     from sympy import Dummy, ImageSet, Lambda, S, pi
     from sympy.sets import Interval
+
     _n = Dummy("n")
 
-    assert_equals(sympy_range_to_isabelle(ImageSet(Lambda(_n, 2*_n*pi + pi/2), S.Integers)), "{pi*1/2+pi*n*2|n. n \<in> Ints}")
+    assert_equals(
+        sympy_range_to_isabelle(ImageSet(Lambda(_n, 2 * _n * pi + pi / 2), S.Integers)),
+        "{pi*1/2+pi*n*2|n. n \<in> Ints}",
+    )
 
     assert_equals(sympy_range_to_isabelle(Interval.Lopen(1, 2)), "{1<..2}")
     assert_equals(sympy_range_to_isabelle(S.Reals), "UNIV")
 
+
 def get_solution_domain(sols, iVar):
     from sympy import Union, Interval, oo, Intersection, Abs
+
     sIVar = iVar._sympy_()
     domain = S.Reals
     for sol in sols:
@@ -366,6 +417,7 @@ def test():
             print(g_name)
             globals()[g_name]()
 
+
 def preprocess_and_solve(odes, i_var, d_vars):
     """
     Preprocesses the ode inputs with `replace_wt_higher_deriv` and `solve_indep`, and then solves.
@@ -378,10 +430,10 @@ def preprocess_and_solve(odes, i_var, d_vars):
         sols.append(my_desolve_system(wodes, d_vars, ivar=i_var))
 
     for sub_ode in subs_odes:
-        sols.append(
-            sub_ode.rhs() == sub_ode.lhs().operator().function()(i_var).subs(sols).diff(i_var))
+        sols.append(sub_ode.rhs() == sub_ode.lhs().operator().function()(i_var).subs(sols).diff(i_var))
 
     return [d_var == d_var.subs(sols) for d_var in d_vars]
+
 
 def extract_full_solution(de_sol, dvar, ivar):
     if de_sol == "failed":
@@ -396,13 +448,16 @@ def extract_full_solution(de_sol, dvar, ivar):
     else:
         return [stubify(de_sol)]
 
+
 # NOTE: for both of the functions below: Sage's FriCAS integration doesn't like equations to contain
-# a variable "D" (as it clashes with the differential operator), so we have to do some renaming beforehand. 
+# a variable "D" (as it clashes with the differential operator), so we have to do some renaming beforehand.
 newD = var("newD68151")
+
 
 def my_desolve(ode, dvar, ivar, *args, **kwargs):
     if ODE_solver == "sympy":
         from sympy import dsolve
+
         sol = dsolve(ode._sympy_(), dvar._sympy_())
 
         if isinstance(sol, list):
@@ -417,15 +472,17 @@ def my_desolve(ode, dvar, ivar, *args, **kwargs):
     de_sol = desolve(ode, dvar, *args, ivar=ivar, algorithm=ODE_solver, **kwargs)
     return extract_full_solution(de_sol, dvar, ivar)[0].subs(newD == D)
 
+
 def my_desolve_system(sode, dvars, ivar, *args, **kwargs):
     if SODE_solver == "sympy":
         from sympy import dsolve
+
         sols = dsolve([ode._sympy_() for ode in sode], dvars)
 
-        return [sol._sage_() for sol in sols[:len(sode)]]
-
+        return [sol._sage_() for sol in sols[: len(sode)]]
 
     from itertools import product as cart_product
+
     var("D")
 
     for ode, dvar, i in zip(odes, dvars, range(len(odes))):
@@ -435,10 +492,11 @@ def my_desolve_system(sode, dvars, ivar, *args, **kwargs):
     de_sols = desolve_system(sode, dvars, *args, ivar=ivar, algorithm=SODE_solver, **kwargs)
     # NOTE: at the moment, desolve_system never returns a value that we need to solve for, so
     # we're not using extract_full_solution
-    #list(cart_product(new_sols))[0]
-    #new_sols = [extract_full_solution(sol, dvars[i], ivar) for i, sol in enumerate(de_sols)]
+    # list(cart_product(new_sols))[0]
+    # new_sols = [extract_full_solution(sol, dvars[i], ivar) for i, sol in enumerate(de_sols)]
 
     return [de_sol.subs(newD == D) for de_sol in de_sols]
+
 
 if len(sys.argv) == 2 and sys.argv[1] == "-t":
     test()
@@ -453,12 +511,13 @@ else:
 
     reconstantify(sols)
 
-    print("\<lambda> " + str(iVar) + ".("  + ", ".join([
-        exprToIsabelle(sol.rhs()) for sol in sols]) + ")")
+    print("[" + ", ".join([f'("{sol.lhs().operator()}", {exprToIsabelle(sol.rhs())})' for sol in sols]) + "]")
     solution_domain = get_solution_domain(sols, iVar)
     try:
         print(sympy_range_to_isabelle(solution_domain))
     except Exception as e:
-        warnings.warn("Failed to convert: " + str(solution_domain) + " to Isabelle" + "\n" + str(e)
-            , RuntimeWarning)
+        warnings.warn(
+            "Failed to convert: " + str(solution_domain) + " to Isabelle" + "\n" + str(e),
+            RuntimeWarning,
+        )
         print("UNIV")
