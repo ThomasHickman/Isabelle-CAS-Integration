@@ -31,35 +31,35 @@ datatype rule = Rule of string * expr
 datatype ode_solution = Solution of rule list
 
 (* Handle powers separately *)
-fun translate_expr sode (e as (Fun ("Power", args))) =
+fun translate_expr ivar vars (e as (Fun ("Power", args))) =
   (case args of
-        [Id "E", exponent] => UOp (@{const_name "exp"}, translate_expr sode exponent)
+        [Id "E", exponent] => UOp (@{const_name "exp"}, translate_expr ivar vars exponent)
         (* ^ has type signature real -> nat -> real *)
-      | [base, Int n] => let val trans_base = translate_expr sode base
+      | [base, Int n] => let val trans_base = translate_expr ivar vars base
                          in (if n >= 0
                             then BOp (@{const_name "power"}, trans_base, NNat n)
                             else if n = ~1 then BOp (@{const_abbrev inverse_divide}, NInt 1, trans_base)
                                   else BOp (@{const_name "power"}
                                            , BOp (@{const_name "divide"}, NInt 1, trans_base)
-                                           , translate_expr sode (Int (~n))))
+                                           , translate_expr ivar vars (Int (~n))))
                          end
-      | [base, exponent] => BOp (@{const_name powr}, translate_expr sode base, translate_expr sode exponent)
+      | [base, exponent] => BOp (@{const_name powr}, translate_expr ivar vars base, translate_expr ivar vars exponent)
       | _ => raise TranslationError ("Invalid application of power", e)) |
-translate_expr (sode as {ivar = _, odes = odes}) (e as (Fun (fname, args))) =
+translate_expr ivar vars (e as (Fun (fname, args))) =
   (case args of
     (* One parameter functions *)
     ([arg]) => (case fname of
-                     "C" => let val Int n = arg in SVar (nth (Symtab.keys odes) (n-1)) end
-                   | "Sin" => UOp (@{const_name sin}, translate_expr sode arg)
-                   | "Cos" => UOp (@{const_name cos}, translate_expr sode arg)
-                   | "Tan" => UOp (@{const_name tan}, translate_expr sode arg) 
-                   | "Sinh" => UOp (@{const_name sinh}, translate_expr sode arg) 
-                   | "Cosh" => UOp (@{const_name cosh}, translate_expr sode arg) 
-                   | "Tanh" => UOp (@{const_name tanh}, translate_expr sode arg) 
-                   | "ArcSin" => UOp (@{const_name arcsin}, translate_expr sode arg)
-                   | "Log" => UOp (@{const_name ln}, translate_expr sode arg) 
+                     "C" => let val Int n = arg in SVar (nth vars (n-1)) end
+                   | "Sin" => UOp (@{const_name sin}, translate_expr ivar vars arg)
+                   | "Cos" => UOp (@{const_name cos}, translate_expr ivar vars arg)
+                   | "Tan" => UOp (@{const_name tan}, translate_expr ivar vars arg) 
+                   | "Sinh" => UOp (@{const_name sinh}, translate_expr ivar vars arg) 
+                   | "Cosh" => UOp (@{const_name cosh}, translate_expr ivar vars arg) 
+                   | "Tanh" => UOp (@{const_name tanh}, translate_expr ivar vars arg) 
+                   | "ArcSin" => UOp (@{const_name arcsin}, translate_expr ivar vars arg)
+                   | "Log" => UOp (@{const_name ln}, translate_expr ivar vars arg) 
                    | _ => raise TranslationError ("Invalid one-paramter function", e))
-  | arglist => let val join_with = fn x => foldl1_BOp x (map (translate_expr sode) arglist)
+  | arglist => let val join_with = fn x => foldl1_BOp x (map (translate_expr ivar vars) arglist)
                  in (case fname of
                     (* Potentially many parameters *)
                           "Plus" => join_with @{const_name plus} 
@@ -68,7 +68,7 @@ translate_expr (sode as {ivar = _, odes = odes}) (e as (Fun (fname, args))) =
                         | "And" => join_with @{const_name conj}  
                         | "NotElement" => join_with @{const_abbrev Set.not_member} 
 (*                        | "Inequality" => (* Inequalities are of the form Inequality[a,<=,b,<=,c] *)
-                            let fun transl x = translate_expr sode x
+                            let fun transl x = translate_expr ivar vars x
                             and handle_inequality (a::b::c::l) =
                                 (transl a) ^ (transl b) ^ (transl c) ^
                                 (case l of [] => "" | _ => " \<and> " ^ handle_inequality (c::l))
@@ -85,52 +85,8 @@ translate_expr (sode as {ivar = _, odes = odes}) (e as (Fun (fname, args))) =
                         | "LessEqual" => join_with @{const_name less_eq}
                         | _ => raise TranslationError ("Invalid multi-parameter function", e))
                  end)
-
-(*
  |
-translate_expr vars table (e as (Fun (fname, args))) =
-  (case args of
-    (* One parameter functions *)
-    ([arg]) => (case fname of
-                     "C" => let val Int n = arg in nth vars n end
-                   | "Sin" => "sin(" ^ (translate_expr vars table arg) ^ ")"
-                   | "Cos" => "cos(" ^ (translate_expr vars table arg) ^ ")" 
-                   | "Tan" => "tan(" ^ (translate_expr vars table arg) ^ ")" 
-                   | "Sinh" => "sinh(" ^ (translate_expr vars table arg) ^ ")" 
-                   | "Cosh" => "cosh(" ^ (translate_expr vars table arg) ^ ")" 
-                   | "Tanh" => "tanh(" ^ (translate_expr vars table arg) ^ ")" 
-                   | "ArcSin" => "arcsin(" ^ (translate_expr vars table arg) ^ ")" 
-                   | "Log" => "ln(" ^ (translate_expr vars table arg) ^ ")" 
-                   | _ => raise TranslationError ("Invalid one-paramter function", e))
-  | arglist => let val join_with = fn x => "(" ^ String.concatWith x (
-                                     map (translate_expr vars table) arglist) ^ ")"
-                 in (case fname of
-                    (* Potentially many parameters *)
-                          "Plus" => join_with " + " 
-                        | "Times" => join_with " * " 
-                        | "Or" => join_with "\<or>" 
-                        | "And" => join_with "\<and>" 
-                        | "NotElement" => join_with "\<notin>" 
-                        | "Inequality" => (* Inequalities are of the form Inequality[a,<=,b,<=,c] *)
-                            let fun transl x = translate_expr vars table x
-                            and handle_inequality (a::b::c::l) =
-                                (transl a) ^ (transl b) ^ (transl c) ^
-                                (case l of [] => "" | _ => " \<and> " ^ handle_inequality (c::l))
-                            in handle_inequality arglist
-                            end
-                        (* Two parameters *)
-                        | "Rational" => join_with " / "
-                        | "Element" => join_with " \<in> "
-                        | "Unequal" => join_with "\<noteq>"
-                        | "Equal" => join_with "="
-                        | "Greater" => join_with ">"
-                        | "GreaterEqual" => join_with "\<ge>"
-                        | "Less" => join_with "<"
-                        | "LessEqual" => join_with "\<le>"
-                        | _ => raise TranslationError ("Invalid multi-parameter function", e))
-                 end) |
-*) |
-translate_expr {ivar = ivar, odes = odes} (Id v) =
+translate_expr ivar vars (Id v) =
       (case v of
 (*          "LessEqual" => " \<le> "
         | "Less" => " < "
@@ -139,19 +95,27 @@ translate_expr {ivar = ivar, odes = odes} (Id v) =
         | "Unequal" => " \<noteq> "
         | "Integers" => "\<int>"
 *)
-        _ => if Ord_List.member string_ord (Symtab.keys odes) v
+        _ => if Ord_List.member string_ord vars v
                then SVar v 
                else if (v = ivar) 
                then IVar
                else CVar v) |
-translate_expr _ (Int n) = NInt n 
+translate_expr _ _ (Int n) = NInt n 
 (*
 |
 translate_expr _ (Real n) = if n < 0.0 then "-" ^ Real.toString (~ n)
                             else Real.toString n *)
 (*
 (* No functions that may be curried can be used in an ODE *)
-translate_expr _ _ (CurryFun f) =
+translate_expr _ _ (CurryFun f) =(*
+fun my_tracing x = let val _ = writeln x in x end
+(* DSolve returns a list of solutions: map over them *)
+fun interpret_odes bound_vars free_translation odes =
+  let
+    val rules = (map (map to_rule o to_list) o to_list) odes
+  in map (interpret_ode bound_vars free_translation) rules
+  end
+*)
   raise TranslationError ("Invalid function", CurryFun f)
 *)
 (* Read a Rule expression into the Rule datatype *)
@@ -183,12 +147,12 @@ fun rule_ordering (Rule (a,_), Rule (b, _)) = String.compare (a, b)
 
 
 (* Takes a single ODE solution, in the form of a list of rules *)
-fun interpret_ode sode rules =
+fun interpret_ode {ivar = ivar, odes = odes} rules =
 (*   let val (source, target) = *)
       Symtab.make (
       map (fn (Rule (param, rhs)) =>
               ( param
-              , translate_expr sode rhs)
+              , translate_expr ivar (Symtab.keys odes) rhs)
               ) (sort rule_ordering rules))
   (*
   in (source, target) (* source = name of variable, target = expression *)
@@ -196,16 +160,6 @@ fun interpret_ode sode rules =
      ^ String.concatWith "," target ^ ")" *)
   end
   *)
-
-(*
-fun my_tracing x = let val _ = writeln x in x end
-(* DSolve returns a list of solutions: map over them *)
-fun interpret_odes bound_vars free_translation odes =
-  let
-    val rules = (map (map to_rule o to_list) o to_list) odes
-  in map (interpret_ode bound_vars free_translation) rules
-  end
-*)
 
 end
 end
