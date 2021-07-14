@@ -2,7 +2,7 @@
     Author:     Christian Pardillo Laursen
 
  * Implements the full workflow for solving ODEs in Isabelle
- * using an integration with Mathematica
+ * using an integration with Wolfram
 *) 
 
 
@@ -15,9 +15,9 @@ end
 structure Solve_ODE: SOLVE_ODE =
 struct
 local
-  open Parse_Mathematica;
-  open Isabelle_To_Mathematica;
-  open Mathematica_To_Isabelle;
+  open Parse_Wolfram;
+  open Isabelle_To_Wolfram;
+  open Wolfram_To_Isabelle;
 in 
   fun make_translation from to =
     Symtab.make (ListPair.zipEq (from, to))

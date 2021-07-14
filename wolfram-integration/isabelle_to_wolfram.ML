@@ -1,7 +1,7 @@
 (*  Title:      isabelle_to_mathematica.ML
     Author:     Christian Pardillo Laursen
 
- * Translation from Isabelle terms to Mathematica expressions.
+ * Translation from Isabelle terms to Wolfram expressions.
  * Used for solving ODEs via DSolve
  * 
  * The parameters for DSolve are:
@@ -10,7 +10,7 @@
  *   x: independent variable
 *) 
 
-signature ISABELLE_TO_MATHEMATICA =
+signature ISABELLE_TO_WOLFRAM =
 sig
   val collect_bound: term -> string list
   val collect_free: term -> string list
@@ -22,7 +22,7 @@ sig
   val collect_rhs : term -> term list
 end
 
-structure Isabelle_To_Mathematica =
+structure Isabelle_To_Wolfram =
 struct 
 local
   open Arith_Expr
@@ -30,7 +30,7 @@ in
 
 exception SyntaxError of string;
 
-(* Translate the right-hand side of Isabelle terms to Mathematica functions
+(* Translate the right-hand side of Isabelle terms to Wolfram functions
  * Arguments:
  *  variable names to be used for bound variables, in order of appearance
  *  term to be translated *)
@@ -95,7 +95,7 @@ fun mk_var_conv sode = Symtab.make (ListPair.zip (Symtab.keys sode, Name.invent_
 
 fun my_tracing x = let val _ = writeln x in x end
 
-fun mathematica_output(text) =
+fun wolfram_exec(text) =
   let val _ = writeln "Calling Wolfram..." in
   fst (Isabelle_System.bash_output 
       ("echo \"OutputForm @ Quiet[FullForm[" ^ text ^ "]]\" | wolframscript -noprompt"))
@@ -214,7 +214,7 @@ fun zipWith f =
 
 (* Takes a list of variables to be used instead of those declared in the ODE.
  * This is done to ensure that the rules returned are ordered correctly, as
- * Mathematica orders them alphabetically. This also avoids name clashes.
+ * the Wolfram engine orders them alphabetically. This also avoids name clashes.
  * Assumes the list has the exact amount of variables needed, and the first one
  * is the independent *)
 fun translate_ode ode bound_vars free_vars =

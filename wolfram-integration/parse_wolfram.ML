@@ -1,9 +1,9 @@
 (*  Title:      lex_mathematica.ML
     Author:     Christian Pardillo Laursen
 
- * Parser for tokenized Mathematica expressions
+ * Parser for tokenized Wolfram expressions
 *) 
-signature PARSE_MATHEMATICA =
+signature PARSE_WOLFRAM =
 sig
   datatype expr = Int of int
                 | Real of real
@@ -15,7 +15,7 @@ sig
   exception SyntaxErr of string;
 end;
 
-structure Parse_Mathematica : PARSE_MATHEMATICA =
+structure Parse_Wolfram : PARSE_WOLFRAM =
 struct
   datatype expr = Int of int
                 | Real of real
@@ -35,7 +35,7 @@ struct
   exception SyntaxErr of string;
   local
     open Scan;
-    structure L = Lex_Mathematica;
+    structure L = Lex_Wolfram;
   in 
     fun id toks = one (fn a => case a of L.Id _ => true | _ => false) toks; 
     fun value tks = one (fn a => case a of L.Punct _  => false

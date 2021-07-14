@@ -6,10 +6,10 @@ begin
 
 ML_file \<open>Arith_Expr.ML\<close>
 ML_file \<open>Subst_ODE.ML\<close>
-ML_file \<open>wolfram-integration/lex_mathematica.ML\<close>
-ML_file \<open>wolfram-integration/parse_mathematica.ML\<close>
-ML_file \<open>wolfram-integration/isabelle_to_mathematica.ML\<close>
-ML_file \<open>wolfram-integration/mathematica_to_isabelle.ML\<close>
+ML_file \<open>wolfram-integration/lex_wolfram.ML\<close>
+ML_file \<open>wolfram-integration/parse_wolfram.ML\<close>
+ML_file \<open>wolfram-integration/isabelle_to_wolfram.ML\<close>
+ML_file \<open>wolfram-integration/wolfram_to_isabelle.ML\<close>
 
 ML \<open> 
 
@@ -17,10 +17,10 @@ structure Solve_Subst_ODE =
 struct
   fun solve_subst_ode ctx sode =
   let
-    open Isabelle_To_Mathematica; open Mathematica_To_Isabelle; open Subst_ODE;
+    open Isabelle_To_Wolfram; open Wolfram_To_Isabelle; open Subst_ODE;
     val sode = subst_ode "t" sode;
-    val out = mathematica_output (translate_sode sode);
-    val mexp = Parse_Mathematica.parse out;
+    val out = wolfram_exec (translate_sode sode);
+    val mexp = Parse_Wolfram.parse out;
     val rules = (map (map to_rule o to_list) o to_list) mexp;
     val tm = ode_subst ctx "t" (interpret_ode sode (hd rules))
   in Syntax.check_term ctx tm

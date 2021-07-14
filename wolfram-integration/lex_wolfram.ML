@@ -1,16 +1,16 @@
-(*  Title:      lex_mathematica.ML
+(*  Title:      lex_wolfram.ML
     Author:     Christian Pardillo Laursen
 
- * Lexer for Mathematica FullForm expressions.
+ * Lexer for Wolfram FullForm expressions.
 *) 
 
-signature LEX_MATHEMATICA =
+signature LEX_WOLFRAM =
 sig
   datatype token = Id of string | Punct of string | Int of int | Real of real;
   val scan : string -> token list
 end;
 
-structure Lex_Mathematica: LEX_MATHEMATICA =
+structure Lex_Wolfram: LEX_WOLFRAM =
 struct
   datatype token = Id of string | Punct of string | Int of int | Real of real;
 

@@ -1,29 +1,29 @@
-(*  Title:      mathematica_to_isabelle.ML
+(*  Title:      wolfram_to_isabelle.ML
     Author:     Christian Pardillo Laursen
 
-Translates parsed Mathematica expressions to Isabelle
+Translates parsed Wolfram expressions to Isabelle
 
 Used for translating ODE solutions back into terms: raises
 TranslationError whenever this assumption does not hold, or
 some translation has not been implemented.
 *)
 
-signature MATHEMATICA_TO_ISABELLE =
+signature WOLFRAM_TO_ISABELLE =
 sig
   type rule
-  val to_rule : Parse_Mathematica.expr -> rule
-  val to_list : Parse_Mathematica.expr -> Parse_Mathematica.expr list
-  val translate_expr: string list -> string Symtab.table -> Parse_Mathematica.expr -> string
-  val get_domain: string -> rule list -> Parse_Mathematica.expr
-  val interpret_odes: string list -> string Symtab.table -> Parse_Mathematica.expr -> string list
+  val to_rule : Parse_Wolfram.expr -> rule
+  val to_list : Parse_Wolfram.expr -> Parse_Wolfram.expr list
+  val translate_expr: string list -> string Symtab.table -> Parse_Wolfram.expr -> string
+  val get_domain: string -> rule list -> Parse_Wolfram.expr
+  val interpret_odes: string list -> string Symtab.table -> Parse_Wolfram.expr -> string list
   val interpret_ode: string list -> string Symtab.table -> rule list -> string
-  exception TranslationError of string * Parse_Mathematica.expr
+  exception TranslationError of string * Parse_Wolfram.expr
 end
 
-structure Mathematica_To_Isabelle =
+structure Wolfram_To_Isabelle =
 struct
 (* Raised when the translation of an expression is not implemented *)
-  local open Parse_Mathematica; open Arith_Expr
+  local open Parse_Wolfram; open Arith_Expr
   in
 exception TranslationError of (string * expr)
 
@@ -172,8 +172,8 @@ fun to_list (x as Fun (f, l)) =
 fun get_domain indep rules =
   let
     val fns = map (fn (Rule (_,x)) => print_expr x) rules
-    val mathematica_query = "FunctionDomain[{" ^ (commas fns) ^ "}," ^ indep ^ "]"
-    val response = Isabelle_To_Mathematica.mathematica_output(mathematica_query)
+    val wolfram_query = "FunctionDomain[{" ^ (commas fns) ^ "}," ^ indep ^ "]"
+    val response = Isabelle_To_Wolfram.wolfram_exec wolfram_query
   in parse response
   end
 

@@ -5,10 +5,10 @@ begin
 ML_file \<open>Arith_Expr.ML\<close>
 ML_file \<open>Tupled_ODE.ML\<close>
 
-ML_file \<open>wolfram-integration/lex_mathematica.ML\<close>
-ML_file \<open>wolfram-integration/parse_mathematica.ML\<close>
-ML_file \<open>wolfram-integration/isabelle_to_mathematica.ML\<close>
-ML_file \<open>wolfram-integration/mathematica_to_isabelle.ML\<close>
+ML_file \<open>wolfram-integration/lex_wolfram.ML\<close>
+ML_file \<open>wolfram-integration/parse_wolfram.ML\<close>
+ML_file \<open>wolfram-integration/isabelle_to_wolfram.ML\<close>
+ML_file \<open>wolfram-integration/wolfram_to_isabelle.ML\<close>
 ML_file \<open>sage-integration/ConvertToSage.ML\<close>
 (* Below is some code that could be used to call the Sage plugin *)
 
@@ -17,11 +17,11 @@ structure Solve_Tupled_ODE =
 struct
   fun solve_tupled_ode ctx term =
   let
-    open Isabelle_To_Mathematica; open Mathematica_To_Isabelle; open Tupled_ODE;
+    open Isabelle_To_Wolfram; open Wolfram_To_Isabelle; open Tupled_ODE;
     val (vs, sode) = tupled_lam_ode term;
     val {ivar = ivar, ...} = sode
-    val out = mathematica_output (translate_sode sode);
-    val mexp = Parse_Mathematica.parse out;
+    val out = wolfram_exec (translate_sode sode);
+    val mexp = Parse_Wolfram.parse out;
     val rules = (map (map to_rule o to_list) o to_list) mexp;
     val tm = sol_tupled_lam ctx ivar vs (interpret_ode sode (hd rules))
   in Syntax.check_term ctx tm
@@ -46,6 +46,7 @@ end;
 (* Example call to the sage plugin *)
 
 ML \<open>
+
 val term = @{term "(λ t (x, y). (1, x))"};
 open Tupled_ODE;
 val (vs, sode) = tupled_lam_ode term;
