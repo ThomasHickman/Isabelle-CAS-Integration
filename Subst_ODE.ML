@@ -12,22 +12,25 @@ structure Subst_ODE : SUBST_ODE =
 struct
 local
 open Arith_Expr;
-fun aexp_sexp' ctx (NNat n) = HOLogic.mk_number @{typ nat} n
-| aexp_sexp' ctx (NInt n) = HOLogic.mk_number @{typ real} n
+open Syntax;
+fun aexp_sexp' _ (NConst n) = const n
+| aexp_sexp' _ (NNat n) = HOLogic.mk_number @{typ nat} n
+| aexp_sexp' _ (NInt n) = HOLogic.mk_number @{typ real} n
 | aexp_sexp' ctx (UOp (n, e)) = Const (n, dummyT) $ aexp_sexp' ctx e
 | aexp_sexp' ctx (BOp (n, e, f)) = Const (n, dummyT) $ aexp_sexp' ctx e $ aexp_sexp' ctx f
 | aexp_sexp' ctx (SVar x) = 
     let val lens = Expr_Util.const_or_free ctx x
     in Const (@{const_name lens_get}, dummyT) $ lens $ Free (Lift_Expr.state_id, dummyT)
     end
-| aexp_sexp' ctx (CVar x) = Free (x, dummyT)
-| aexp_sexp' ctx IVar = Bound 1 (* 1 because 0 is the state variable *);
+| aexp_sexp' _ (CVar x) = Free (x, dummyT)
+| aexp_sexp' _ IVar = Bound 1 (* 1 because 0 is the state variable *);
 in
 
 fun Num t n =
   case t of @{typ int} => NInt n | _ => NNat n;
 
-fun sexp_aexp (Const (@{const_name SEXP}, _) $ Abs (_, _, e)) = sexp_aexp e
+fun sexp_aexp (Const (@{const_name pi}, _)) = NConst @{const_name pi}
+| sexp_aexp (Const (@{const_name SEXP}, _) $ Abs (_, _, e)) = sexp_aexp e
 | sexp_aexp (Const (@{const_name lens_get}, _) $ n $ _) = SVar (Term.term_name n)
 | sexp_aexp (Const (@{const_name zero_class.zero}, t)) = Num t 0
 | sexp_aexp (Const (@{const_name one_class.one}, t)) = Num t 1

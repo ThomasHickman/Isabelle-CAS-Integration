@@ -3,15 +3,16 @@
 signature ARITH_EXPR =
 sig
 
-(* Binder-free arithmetic expressions with an constants, state variables, and an independent variable *)
+(* Binder-free arithmetic expressions with constants, state variables, and an independent variable *)
 
 datatype AExp =
+  NConst of string | (* Numeric constants, e.g. pi and e *)
   UOp of string * AExp |
   BOp of string * AExp * AExp |
   NNat of int | 
   NInt of int |
   NReal of real |
-  CVar of string | (* Constant *)
+  CVar of string | (* Constant variable *)
   SVar of string | (* State variable *)
   IVar; (* Independent variable *)
 
@@ -37,6 +38,8 @@ local
 in
 
 datatype AExp =
+
+  NConst of string |
   UOp of string * AExp |
   BOp of string * AExp * AExp |
   NNat of int | 
@@ -54,7 +57,8 @@ fun foldr1_BOp n = foldr1 (fn (x, y) => BOp (n, x, y));
 (* Reverse a conversion table *)
 fun rev_conv cnv = Symtab.make (map (fn (x, y) => (y, x)) (Symtab.dest cnv))
 
-fun aexp_conv cnv (UOp (n, e)) = UOp (n, aexp_conv cnv e)
+fun aexp_conv _ (NConst n) = NConst n
+| aexp_conv cnv (UOp (n, e)) = UOp (n, aexp_conv cnv e)
 | aexp_conv cnv (BOp (n, e, f)) = BOp (n, aexp_conv cnv e, aexp_conv cnv f)
 | aexp_conv _ (NNat n) = NNat n
 | aexp_conv _ (NInt n) = NInt n
@@ -70,7 +74,8 @@ fun sode_conv cnv {ivar = ivar, odes = odes} =
 fun parse_aexp xs =
   let open Parse
   in
-  ((reserved "NNat" |-- Parse.int >> NNat)
+  ((reserved "NConst" |-- Parse.string >> NConst)
+  || (reserved "NNat" |-- Parse.int >> NNat)
   || (reserved "NInt" |-- Parse.int >> NInt)
   || (reserved "NReal" |-- Parse.real >> NReal)
   || (reserved "CVar" |-- Parse.string >> CVar)

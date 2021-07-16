@@ -35,7 +35,12 @@ exception SyntaxError of string;
  *  variable names to be used for bound variables, in order of appearance
  *  term to be translated *)
 
-fun translate_term indep (BOp (name, lhs, rhs)) =
+fun translate_term _ (NConst name) = 
+  (case name of
+       @{const_name pi} => "Pi"
+     | _ => raise SyntaxError name)
+  |
+translate_term indep (BOp (name, lhs, rhs)) =
   let
     val printL = translate_term indep lhs
     and printR = translate_term indep rhs

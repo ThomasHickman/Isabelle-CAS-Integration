@@ -1,4 +1,4 @@
-theory Tupled_ODE 
+theory Tupled_ODE
   imports ODE_Solve_Keyword
 begin
 
@@ -47,7 +47,7 @@ end;
 
 ML \<open>
 
-val term = @{term "(λ t (x, y). (1, x))"};
+val term = @{term "(\<lambda> t (x, y). (1, x))"};
 open Tupled_ODE;
 val (vs, sode) = tupled_lam_ode term;
 val (solution, range) = Convert_To_Sage.desolve sode;
@@ -56,3 +56,5 @@ Arith_Expr.read_sol solution
 
 
 end
+
+  

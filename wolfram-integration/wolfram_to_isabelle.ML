@@ -88,6 +88,7 @@ translate_expr ivar vars (e as (Fun (fname, args))) =
  |
 translate_expr ivar vars (Id v) =
       (case v of
+        "Pi" => NConst @{const_name pi} |
 (*          "LessEqual" => " \<le> "
         | "Less" => " < "
         | "GreaterEqual" => " \<ge> "
